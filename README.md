@@ -25,7 +25,7 @@ Super J-Bot is built on the backs of these existing frameworks:
 
 The bot was built to enhance the experience of users in the Super J Cast Discord without being obstructive or spammy. Automated or constantly running processes are kept to a minimum and uninvited messages are kept as unobtrusive as possible.
 
-`@everyone` is not used at any point and `@here` is used sparringly, only for changes to the context of all ongoing discussion.
+`@everyone` is not used at any point and `@here` is used sparingly, only for changes to the context of all ongoing discussion.
 
 The burden of preventing abuse of the bot functions to cause spam or disrupt conversation is placed on the users, who are trusted to be sensible, and the moderation team, who are able to warn, kick and ban users if appropriate.
 
