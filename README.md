@@ -1,5 +1,5 @@
 # Super J-Bot
-[![made-with-python](https://img.shields.io/badge/Made%20with-Python-1f425f.svg)](https://www.python.org/) [![GitHub release](https://img.shields.io/github/release/davidminty/superjbot.svg)](https://GitHub.com/davidminty/superjbot/releases/) [![GitHub pull-requests](https://img.shields.io/github/issues-pr/davidminty/superjbot.svg)](https://GitHub.com/davidminty/superjbot/pull/) [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://GitHub.com/davidminty/superjbot/graphs/commit-activity)
+[![made-with-python](https://img.shields.io/badge/Made%20with-Python-1f425f.svg)](https://www.python.org/) [![GitHub release](https://img.shields.io/github/release/coldspice/superjbot.svg)](https://GitHub.com/coldspice/superjbot/releases/) [![GitHub pull-requests](https://img.shields.io/github/issues-pr/coldspice/superjbot.svg)](https://GitHub.com/coldspice/superjbot/pull/) [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://GitHub.com/coldspice/superjbot/graphs/commit-activity)
 
 
 A Discord bot built with python, specifically tailored to the Super J-Cast server.
@@ -58,4 +58,4 @@ Make sure to:
 
 ## Licence
 
-[![GitHub license](https://img.shields.io/github/license/davidminty/superjbot.svg)](https://github.com/davidminty/superjbot/blob/main/LICENSE)
+[![GitHub license](https://img.shields.io/github/license/coldspice/superjbot.svg)](https://github.com/coldspice/superjbot/blob/main/LICENSE)
