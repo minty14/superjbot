@@ -48,8 +48,11 @@ Damon & [Joel](https://twitter.com/joeljabraham) - For their fantastic work host
 
 Make sure to: 
 [Subscribe](https://redcircle.com/shows/super-j-cast)  to the show to your favourite podcast player.
+
 [Follow](https://twitter.com/thesuperjcast) the show on Twitter.
+
 [Sponsor](https://app.redcircle.com/shows/cf1d4e82-ac3d-47e6-948d-1d299cf6744e/sponsor) the show on RedCircle.
+
 [Buy Shirts](https://www.prowrestlingtees.com/superjcast) on the show's PWT store.
 
 ## Licence
