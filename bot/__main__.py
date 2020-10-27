@@ -6,7 +6,7 @@ from discord.ext.commands import Bot
 
 # module imports
 import embeds
-from constants import TOKEN, NEW_MEMBER_CHANNEL, RULES_CHANNEL, OWNER_ID
+from constants import TOKEN, NEW_MEMBER_CHANNEL, RULES_CHANNEL, NEW_POD_CHANNEL, OWNER_ID
 from scraper import Scraper
 
 # create required intents
@@ -33,7 +33,7 @@ async def on_ready():
     # For each guild that the bot is logged into, prints user, guild name and ID
     for i in bot.guilds:
         print(
-            f"Logged in as \'{bot.user}\' in \'{i.name}\' (Guild ID: {i.id})\nChannels: {i.channels}")
+            f"Logged in as \'{bot.user}\' in \'{i.name}\' (Guild ID: {i.id})")
 
 
 @bot.listen("on_member_join")
@@ -87,7 +87,7 @@ async def update_info():
                 value=bot.last_pod["duration"]
             )
 
-            channel = bot.get_channel(587339187208978475)
+            channel = bot.get_channel(NEW_POD_CHANNEL)
             await channel.send("@here New Pod!")
             await channel.send(embed=embed)
             bot.new_pod = False
