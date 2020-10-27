@@ -1,0 +1,15 @@
+[[source]]
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+beautifulsoup4 = "*"
+lxml = "*"
+"discord.py" = "==1.5.1"
+
+[dev-packages]
+pylint = "*"
+
+[requires]
+python_version = "3.8"
