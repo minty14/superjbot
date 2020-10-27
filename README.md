@@ -47,6 +47,7 @@ Have an improvement suggestion? Feel free to contact me at any time with your th
 Damon & [Joel](https://twitter.com/joeljabraham) - For their fantastic work hosting the podcast and for creating an engaged and welcoming community
 
 Make sure to: 
+
 [Subscribe](https://redcircle.com/shows/super-j-cast)  to the show to your favourite podcast player.
 
 [Follow](https://twitter.com/thesuperjcast) the show on Twitter.
