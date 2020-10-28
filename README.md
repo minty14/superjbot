@@ -12,6 +12,7 @@ A Discord bot built with python, specifically tailored to the Super J-Cast serve
 * [Licence](#licence)
 
 Join the Super J-Cast Discord
+
 [![Support Server](https://img.shields.io/discord/476440670433706003.svg?label=Discord&logo=Discord&colorB=7289da&style=for-the-badge)](https://discord.gg/zWEgNK5)
 
 ## Technologies and Frameworks
