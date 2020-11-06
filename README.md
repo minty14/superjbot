@@ -4,7 +4,7 @@
 
 A Discord bot built with python, specifically tailored to the Super J-Cast server.
 
-* [User Guide](https://github.com/davidminty/superjbot/wiki)
+* [User Guide](https://github.com/coldspice/superjbot/wiki)
 * [Technologies and Frameworks](#technologies-and-frameworks)
 * [Design Approach](#design-approach)
 * [Contribute](#contribute)
@@ -12,6 +12,7 @@ A Discord bot built with python, specifically tailored to the Super J-Cast serve
 * [Licence](#licence)
 
 Join the Super J-Cast Discord
+
 [![Support Server](https://img.shields.io/discord/476440670433706003.svg?label=Discord&logo=Discord&colorB=7289da&style=for-the-badge)](https://discord.gg/zWEgNK5)
 
 ## Technologies and Frameworks
@@ -33,11 +34,11 @@ The bot will be continuously maintained and improved upon using the community's 
 
 ## Contribute
 
-Found a bug or issue? [Raise an issue](https://github.com/davidminty/superjbot/issues/new), ensuring that your description is as verbose as possible. Include the issue you found, where & how you found it, and whether you are able to consistenly reproduce the issue.
+Found a bug or issue? [Raise an issue](https://github.com/coldspice/superjbot/issues/new), ensuring that your description is as verbose as possible. Include the issue you found, where & how you found it, and whether you are able to consistenly reproduce the issue.
 
-Want to contribute? [Create a Pull Request](https://github.com/davidminty/superjbot/compare), including full details on your changes, the testing done and which issue the PR relates to if applicable.
+Want to contribute? [Create a Pull Request](https://github.com/coldspice/superjbot/compare), including full details on your changes, the testing done and which issue the PR relates to if applicable.
 
-Questions on usage? [Read the user guide](https://github.com/davidminty/superjbot/wiki), use `!help`, @ or DM me in the Discord (@minty)
+Questions on usage? [Read the user guide](https://github.com/coldspice/superjbot/wiki), use `!help`, @ or DM me in the Discord (@minty)
 
 Have an improvement suggestion? Feel free to contact me at any time with your thoughts.
 
