@@ -50,7 +50,8 @@ async def on_member_join(member):
     if bot.spoiler:
         njpw_spoiler_channel = bot.get_channel(NJPW_SPOILER_CHANNEL)
         non_njpw_spoiler_channel = bot.get_channel(NON_NJPW_SPOILER_CHANNEL)
-        await channel.send(f"Welcome {member.mention}! For spoilerific chat about the ongoing/last show, join us in the spoiler channels:\n"
+        general_channel = bot.get_channel(NEW_MEMBER_CHANNEL)
+        await general_channel.send(f"Welcome {member.mention}! For spoilerific chat about the ongoing/last show, join us in the spoiler channels:\n"
                            f"NJPW Events: {njpw_spoiler_channel.mention}\n"
                            f"Other Events: {non_njpw_spoiler_channel.mention}\n")
 
