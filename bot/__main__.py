@@ -6,7 +6,7 @@ from discord.ext.commands import Bot
 
 # module imports
 import embeds
-from constants import TOKEN, NEW_MEMBER_CHANNEL, RULES_CHANNEL, NEW_POD_CHANNEL, OWNER_ID
+from constants import TOKEN, NEW_MEMBER_CHANNEL, RULES_CHANNEL, NEW_POD_CHANNEL, OWNER_ID, NJPW_SPOILER_CHANNEL, NON_NJPW_SPOILER_CHANNEL
 from scraper import Scraper
 
 # create required intents
@@ -48,8 +48,11 @@ async def on_member_join(member):
     f"If you have find any issues with the bot and want to make suggestions, drop a DM to {owner.mention}\n"
     "Have fun!")
     if bot.spoiler:
-        channel = bot.get_channel(NEW_MEMBER_CHANNEL)
-        await channel.send(f"Welcome {member.mention}! For spoilerific chat about the ongoing/last show, join us in {channel.mention}. Thanks!")
+        njpw_spoiler_channel = bot.get_channel(NJPW_SPOILER_CHANNEL)
+        non_njpw_spoiler_channel = bot.get_channel(NON_NJPW_SPOILER_CHANNEL)
+        await channel.send(f"Welcome {member.mention}! For spoilerific chat about the ongoing/last show, join us in the spoiler channels:\n"
+                           f"NJPW Events: {njpw_spoiler_channel.mention}\n"
+                           f"Other Events: {non_njpw_spoiler_channel.mention}\n")
 
 @bot.listen("on_message")
 async def on_message(message):
