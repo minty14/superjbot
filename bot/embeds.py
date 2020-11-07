@@ -39,7 +39,7 @@ def pod_info_embed(pod_info, last_pod):
 
     return embed
 
-def last_pod_embed(last_pod):
+def pod_episode_embed(last_pod):
     embed = discord.Embed(
         title=last_pod["title"],
         url=last_pod["link"],
@@ -83,5 +83,28 @@ def shows_embed(type, shows, number_of_shows):
             value=f"""Date: {event["date"]}\nCity: {event["city"]}\nVenue: {event["venue"]}""",
             inline=False
         )
+
+    return embed
+
+def profile_embed(profile):
+    embed = discord.Embed(
+        title=profile["name"],
+        url=profile["link"]
+    )
+
+    embed.set_thumbnail(
+        url=profile["render"]
+    )
+
+    optional_attributes = [
+        "unit", "height", "weight", "finisher", "theme", "debut", "birthplace", "birthday", "blood type", "blog", "twitter"
+    ]
+
+    for attr in optional_attributes:
+        if profile[attr]:
+            embed.add_field(
+                name=attr.title(),
+                value=profile[attr]
+            )
 
     return embed

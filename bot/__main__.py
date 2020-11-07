@@ -30,6 +30,7 @@ async def on_ready():
     bot.last_pod = []
     bot.new_pod = False
     update_info.start()
+    update_profiles.start()
     # For each guild that the bot is logged into, prints user, guild name and ID
     for i in bot.guilds:
         print(
@@ -71,22 +72,7 @@ async def update_info():
         bot.last_shows = scraper.shows("result")
         print("Info Variables Updated")
         if bot.new_pod:
-            embed = discord.Embed(
-                title=bot.last_pod["title"],
-                url=bot.last_pod["link"],
-                description=bot.last_pod["description"]
-            )
-
-            embed.add_field(
-                name="Published",
-                value=bot.last_pod["published"]
-            )
-
-            embed.add_field(
-                name="Duration",
-                value=bot.last_pod["duration"]
-            )
-
+            embed = embeds.pod_episode_embed(bot.last_pod)
             channel = bot.get_channel(NEW_POD_CHANNEL)
             await channel.send("@here New Pod!")
             await channel.send(embed=embed)
@@ -94,6 +80,13 @@ async def update_info():
 
     except:
         print("Unable to Update Info Variables:\n" + Exception)
+
+# Background task to pull wrestler profiles and store in a variable.
+# More intensive than the other scraper and will change less often, so only runs once a day
+@tasks.loop(minutes=1440)
+async def update_profiles():
+    bot.profiles = scraper.profiles()
+    print("Profiles Updated")
 
 ###
 # Bot Commands
@@ -198,7 +191,7 @@ async def last_shows(ctx, number_of_shows=3):
     \tThe episode's release date.
     \tThe episode's duration."""
     )
-async def last_pod(ctx):
+async def pod_episode_embed(ctx):
     embed = embeds.last_pod_embed(bot.last_pod)
     await ctx.send(embed=embed)
 
@@ -217,5 +210,20 @@ async def last_pod(ctx):
 async def pod_info(ctx):
     embed = embeds.pod_info_embed(bot.pod_info, bot.last_pod)
     await ctx.send(embed=embed)
+
+# Display the profile that matches the searched name
+@bot.command(name="profile",
+    brief="Provide the name of a wrestler to get their profile",
+    help="""Search for and display, an NJPW wrestler's profile.
+    \nIf your search includes a space, you'll need to put quotation marks around it."""
+    )
+async def profile(ctx, name):
+    if len(name) < 3:
+        await ctx.send("Please enter at least 3 characters to find a profile")
+    else:
+        for pf in bot.profiles:
+            if name.lower() in pf["name"].lower():
+                embed = embeds.profile_embed(pf)
+                await ctx.send(embed=embed)
 
 bot.run(TOKEN)

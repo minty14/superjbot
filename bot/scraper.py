@@ -6,6 +6,12 @@ class Scraper():
     def __init__(self):
         pass
 
+    def create_soup(self, url, features):
+        page = requests.get(url)
+        soup = BeautifulSoup(page.content, features)
+
+        return soup
+
     def pod_info(self):
         url = "https://redcircle.com/shows/super-j-cast/episodes/d7179957-bb87-4208-9117-a1c6f43b9229"
         page = requests.get(url)
@@ -56,7 +62,7 @@ class Scraper():
                     "date": " ".join(date.find("p", class_="date").get_text().strip().split()),
                     "city": date.find("p", class_="city").get_text().strip(),
                     "venue": date.find("p", class_="venue").get_text().strip(),
-                    "thumb": event.find("img")['src']
+                    "thumb": event.find("img")["src"]
                 }
                 events_list.append(show_dict)
 
@@ -64,3 +70,55 @@ class Scraper():
 
     def results(self):
         pass
+
+    def profiles(self):
+        soup = self.create_soup("https://www.njpw1972.com/profiles/", "lxml")
+
+        profile_list = soup.find("ul", class_="wrestlerList").find_all("li")
+
+        profiles = []
+
+        for profile in profile_list:
+            profile_dict = {
+                "name": profile.find("p", class_="name").get_text().strip(),
+                "link": profile.find("a")["href"],
+                "render": profile.find("img")["src"]
+            }
+            profiles.append(profile_dict)
+
+        profile_attributes = {
+            "height": "HEIGHT",
+            "weight": "WEIGHT",
+            "birthday": "YEAR OF BIRTH",
+            "birthplace": "PLACE OF BIRTH",
+            "blood type": "BLOOD TYPE",
+            "debut": "DEBUT",
+            "finisher": "FINISH HOLD",
+            "theme": "THEME SONG",
+            "blog": "BLOG"
+        }
+
+        for pf in profiles:
+            pf_soup = self.create_soup(pf["link"], "lxml").find("div", class_="profileDetail")
+
+            for key in profile_attributes:
+                try:
+                    pf[key] = pf_soup.find("dt", text=profile_attributes[key]).findNext("dd").get_text().strip()
+                except AttributeError:
+                    pf[key] = None
+            try:
+                pf["unit"] = pf_soup.find("p", text="UNIT").findNext("p").get_text().strip()
+            except AttributeError:
+                pf["unit"] = None
+
+            try:
+                pf["twitter"] = pf_soup.find("dt", text="TWITTER").findNext("a")["href"]
+            except AttributeError:
+                pf["twitter"] = None
+
+            try:
+                pf["bio"] = pf_soup.find("div", class_="textBox").get_text().strip()
+            except AttributeError:
+                pf["bio"] = None
+        
+        return profiles
