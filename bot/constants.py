@@ -5,7 +5,9 @@ IDs are treated as ints by discord.py, so are explicitly converted here.
 """
 import os
 
-## Bot Related
+###
+# Bot Related
+###
 
 # Discord Bot Token - https://discord.com/developers/applications
 TOKEN = os.environ["DISCORD_TOKEN"]
@@ -13,7 +15,9 @@ TOKEN = os.environ["DISCORD_TOKEN"]
 # ID of the bot owner user - currently in use as bot.owner_id was returning None
 OWNER_ID = int(os.environ["OWNER_ID"])
 
-## Guild related
+###
+# Channel IDs
+###
 
 # ID of the text channel to display messages to new users. Typically the default channel
 NEW_MEMBER_CHANNEL = int(os.environ["NEW_MEMBER_CHANNEL"])
