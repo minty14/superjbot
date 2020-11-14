@@ -1,4 +1,6 @@
 """
+Functions to build commonly used embeds.
+
 discord.py builds embeds using the Embed Class and Methods, as many command replies are standard
 in structure, functions are defined here to make them repeatable.
 
@@ -104,9 +106,16 @@ def shows_embed(type, shows, number_of_shows):
 # Build an embed with a wrestler's profile using a provided dict
 # Profile info is pulled from njpw1972.com/profile
 def profile_embed(profile):
+    
+    if profile["unit"] in colours:
+        colour = colours[profile["unit"]]
+    else:
+        colour = 8359053
+
     embed = Embed(
         title=profile["name"],
-        url=profile["link"]
+        url=profile["link"],
+        color=colour
     )
 
     embed.set_thumbnail(
@@ -127,3 +136,39 @@ def profile_embed(profile):
             )
 
     return embed
+
+# Build an embed with a wrestler's bio using a provided dict
+# Bio info is pulled from njpw1972.com/profile
+def bio_embed(profile):
+
+    if profile["unit"] in colours:
+        colour = colours[profile["unit"]]
+    else:
+        colour = 8359053
+
+    embed = Embed(
+        title=profile["name"],
+        url=profile["link"],
+        color=colour,
+        description=profile["bio"][:2040] + "..."
+    )
+
+    embed.set_thumbnail(
+        url=profile["render"]
+    )
+
+    if len(profile["bio"]) > 2048:
+        embed.set_footer(
+            text="Bio truncated due to Discord Embed limits, see the full profile by visiting njpw1972.com"
+        )
+
+    return embed
+
+colours = {
+        "Suzuki gun": 12745742,
+        "Los Ingobernables de Japón": 15158332,
+        "CHAOS": 16302848,
+        "BULLET CLUB": 12370112,
+        "NJPW main unit": 2123412,
+        "The Empire": 3066993
+    }
