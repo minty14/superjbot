@@ -15,6 +15,9 @@ TOKEN = os.environ["DISCORD_TOKEN"]
 # ID of the bot owner user - currently in use as bot.owner_id was returning None
 OWNER_ID = int(os.environ["OWNER_ID"])
 
+# Explicit ID of the Super J-Cast Discord Guild/Server
+GUILD_ID = int(os.environ["GUILD_ID"])
+
 ###
 # Channel IDs
 ###
