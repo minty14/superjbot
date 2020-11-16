@@ -1,6 +1,7 @@
 # external imports
 import os
 import asyncio
+import logging
 import discord
 from discord.ext import tasks
 from discord.ext.commands import Bot
@@ -10,6 +11,27 @@ import utils.scraper
 from settings.constants import (
     TOKEN, NEW_POD_CHANNEL
 )
+
+# Configure Logging
+
+# Create handlers
+c_handler = logging.StreamHandler()
+f_handler = logging.FileHandler('superjbot.log')
+c_handler.setLevel(logging.INFO)
+f_handler.setLevel(logging.DEBUG)
+
+# Create formatters and add it to handlers
+c_format = logging.Formatter('%(asctime)s:%(name)s:%(levelname)s#%(message)s', datefmt='%d.%m.%y-%H:%M:%S')
+f_format = logging.Formatter('%(asctime)s:%(name)s:%(levelname)s#%(message)s', datefmt='%d.%m.%y-%H:%M:%S')
+c_handler.setFormatter(c_format)
+f_handler.setFormatter(f_format)
+
+# Add handlers to the logger
+# Level also set here as logs weren't being output without it
+logging.basicConfig(
+    level=logging.DEBUG,
+    handlers=[c_handler, f_handler]
+    )
 
 # Create required intents
 # Add members intent to run member events
@@ -42,8 +64,7 @@ async def on_ready():
 
     # For each guild that the bot is logged into, prints user, guild name and ID
     for i in bot.guilds:
-        print(
-            f"Logged in as \'{bot.user}\' in \'{i.name}\' (Guild ID: {i.id})")
+        logging.info(f"Logged in as \'{bot.user}\' in \'{i.name}\' (Guild ID: {i.id})")
 
 ###
 # Background Tasks
@@ -67,7 +88,7 @@ async def update_info():
         bot.last_pod = scraper.last_pod()
         bot.next_shows = scraper.shows("schedule")
         bot.last_shows = scraper.shows("result")
-        print("Info Variables Updated")
+        logging.info("Info Variables Updated")
 
         # If new_pod was earlier set to True, creates a message and posts it to the NEW_POD_CHANNEL (currently #general)
         # Finish by setting new_pod back to False for the next loop
@@ -79,14 +100,14 @@ async def update_info():
             bot.new_pod = False
 
     except:
-        print("Unable to Update Info Variables:\n" + Exception)
+        logging.error("Unable to Update Info Variables:\n" + Exception)
 
 # Background task to pull wrestler profiles and store in a variable.
 # More intensive than the other scraper and will change less often, so only runs once a day
 @tasks.loop(hours=24)
 async def update_profiles():
     bot.profiles = scraper.profiles()
-    print("Profiles Updated")
+    logging.info("Profiles Updated")
 
 
 # Starts the bot when the module is run
