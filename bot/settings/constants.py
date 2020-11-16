@@ -31,5 +31,6 @@ RULES_CHANNEL = int(os.environ["RULES_CHANNEL"])
 # ID of the text channel where new podcast episode announcements will be made
 NEW_POD_CHANNEL = int(os.environ["NEW_POD_CHANNEL"])
 
+# IDs of the spoiler channels
 NJPW_SPOILER_CHANNEL = int(os.environ["NJPW_SPOILER_CHANNEL"])
 NON_NJPW_SPOILER_CHANNEL = int(os.environ["NON_NJPW_SPOILER_CHANNEL"])

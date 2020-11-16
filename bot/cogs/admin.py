@@ -1,5 +1,6 @@
 import asyncio
 import os
+import logging
 
 from discord.ext import commands
 import discord
@@ -36,8 +37,7 @@ class Admin(commands.Cog):
         )
     @commands.check(checks.is_admin)
     async def kill(self, ctx):
-        if any(role > ctx.guild.default_role for role in ctx.author.roles):
-            await self.bot.close()
+        await self.bot.close()
 
     # Sets the spoiler variable to true, which does the following:
     #   - Alerts @here when spoiler-zone mode starts, and for how long
@@ -57,13 +57,15 @@ class Admin(commands.Cog):
         # spoiler mode is not currently active - set mode to on, display an @here message in the channel it was invoked in, and sleep for the specified time
         if not self.bot.spoiler:
             self.bot.spoiler = True
-            await ctx.send(f"@here _We're now in the spoiler-zone, keep show chat in the relevant spoiler-zone channel\n\nSpoiler embargo will lift in {str(time)}{unit}_")
+            await ctx.send(f"@here We're now in the _spoiler-zone_, keep show chat in the relevant spoiler-zone channel\n\nSpoiler embargo will lift in {str(time)}{unit}")
+            logging.info(f"Spoiler mode set by {ctx.author} for {str(time)}{unit}")
             await asyncio.sleep(time * units[unit])
 
         # spoiler mode is currently active - set mode off and inform @here
         self.bot.spoiler = False
         await ctx.send("@here _Spoiler embargo lifted, chat away!_")
         await ctx.invoke(self.bot.get_command("nextshows"))
+        logging.info(f"Spoiler mode lifted")
 
     ###
     # Cog Controls
@@ -86,9 +88,10 @@ class Admin(commands.Cog):
             try:
                 self.bot.load_extension("cogs." + cog)
                 await ctx.send(f"\"{cog}\" category loaded")
+                logging.debug(f"{cog} loaded by {ctx.author}")
             except Exception as e:
                 await ctx.send(f"Could not load \"{cog}\" category")
-                print(e)
+                logging.error(f"Error loading {cog}: " + e)
         
     # Unload the extension(s) with the given cog name(s)
     # Can take multiple cog names as arguments
@@ -107,9 +110,10 @@ class Admin(commands.Cog):
             try:
                 self.bot.unload_extension("cogs." + cog)
                 await ctx.send(f"\"{cog}\" category unloaded")
+                logging.debug(f"{cog} unloaded by {ctx.author}")
             except Exception as e:
                 await ctx.send(f"Could not unload \"{cog}\" category")
-                print(e)
+                logging.error(f"Error unloading {cog}: " + e)
         
     # Reload the extension(s) with the given cog name(s)
     # Can take multiple cog names as arguments
@@ -128,9 +132,10 @@ class Admin(commands.Cog):
             try:
                 self.bot.reload_extension("cogs." + cog)
                 await ctx.send(f"\"{cog}\" category reloaded")
+                logging.debug(f"{cog} reloaded by {ctx.author}")
             except Exception as e:
                 await ctx.send(f"Could not reload \"{cog}\" category, trying to load")
-                print(e)
+                logging.error(f"Error reloading {cog}: " + e)
                 # If the cog isn't currently loaded, it will raise an exception, so try to load the cog
                 await ctx.invoke(self.bot.get_command("load"), cog)
         
@@ -144,16 +149,10 @@ class Admin(commands.Cog):
     @commands.check(checks.is_admin)
     async def reloadall(self, ctx):
         for filename in os.listdir("./bot/cogs"):
-            if filename.endswith(".py") and filename != "__init__.py":   
-                try:
-                    self.bot.reload_extension(f"cogs.{filename[:-3]}")
-                    await ctx.send(f"\"{filename[:-3]}\" category reloaded")
-                except Exception as e:
-                    await ctx.send(f"Could not reload {filename[:-3]}, trying to load")
-                    print(e)
-                    # If the cog isn't currently loaded, it will raise an exception, so try to load the cog
-                    await ctx.invoke(self.bot.get_command("load"), filename[:-3])
-                    
+            if filename.endswith(".py") and filename != "__init__.py":
+                cog = filename[:-3]
+                await ctx.invoke(self.bot.get_command("reload"), cog)
+
 
 def setup(bot):
     bot.add_cog(Admin(bot))

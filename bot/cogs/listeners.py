@@ -1,5 +1,6 @@
 from discord.ext import commands
 import discord
+import logging
 
 from settings.constants import (
     NEW_MEMBER_CHANNEL, RULES_CHANNEL, NEW_POD_CHANNEL, OWNER_ID, NJPW_SPOILER_CHANNEL, NON_NJPW_SPOILER_CHANNEL
@@ -17,15 +18,20 @@ class Listeners(commands.Cog):
     # Runs when a new member joins the server
     @commands.Cog.listener("on_member_join")
     async def on_member_join(self, member):
+        logging.info(f"New member joined - {member.name}")
         # Sends a DM to new members requesting that they pay attention to the rules channel and some points on how to get help with the boss
-        await member.create_dm()
-        rules_channel = self.bot.get_channel(RULES_CHANNEL)
-        owner = self.bot.get_user(OWNER_ID)
-        await member.dm_channel.send(f"Hi {member.name}! Thanks for joining us.\n"
-        f"Before you do anything, make sure you head to {rules_channel.mention} to make sure you're aware of the rules and guidelines.\n"
-        f"This bot is here to help you. For more details on what you can do with the bot, use: ```!help```"
-        f"If you have find any issues with the bot and want to make suggestions, drop a DM to {owner.mention}\n"
-        "Have fun!")
+        try:
+            await member.create_dm()
+            rules_channel = self.bot.get_channel(RULES_CHANNEL)
+            owner = self.bot.get_user(OWNER_ID)
+            await member.dm_channel.send(f"Hi {member.name}! Thanks for joining us.\n"
+            f"Before you do anything, make sure you head to {rules_channel.mention} to make sure you're aware of the rules and guidelines.\n"
+            f"This bot is here to help you. For more details on what you can do with the bot, use: ```!help```"
+            f"If you have find any issues with the bot and want to make suggestions, drop a DM to {owner.mention}\n"
+            "Have fun!")
+            logging.debug(f"Successfully sent welcome DM to new user {member.name}")
+        except Exception as e:
+            logging.error(f"Unable to create DM channel for {member.name}:" + e)
 
         # If spoiler mode is on, mentions them in #general and points them in the direction of the spoiler-zone channels
         if self.bot.spoiler:
@@ -43,9 +49,13 @@ class Listeners(commands.Cog):
         # No message listeners are used yet
         pass
 
+    @commands.Cog.listener("on_command")
+    async def on_command(self, ctx):
+        logging.info(f"Command [{ctx.command}] invoked with msg [{ctx.message.content}] by {ctx.author}")
+
     @commands.Cog.listener("on_command_error")
     async def on_command_error(self, ctx, error):
-        print(f"Failure to invoke command \"{ctx.invoked_with}\":\n- {error}")
+        logging.error(f"Failure to invoke command \"{ctx.invoked_with}\": {error}")
 
 
 def setup(bot):
