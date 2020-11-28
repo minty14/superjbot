@@ -2,15 +2,20 @@
 import os
 import asyncio
 import logging
+from datetime import datetime, timedelta
+from mongoengine import connect, errors
+
+# discord imports
 import discord
 from discord.ext import tasks
 from discord.ext.commands import Bot
 
 # module imports
-import utils.scraper
-from settings.constants import (
-    TOKEN, NEW_POD_CHANNEL
-)
+import utils.tasks
+from settings.constants import TOKEN
+from database.models import (
+    SpoilerMode, ScheduleShow, NonNjpwShow, Profile, PodcastEpisode, PodcastInfo)
+
 
 # Configure Logging
 
@@ -38,33 +43,39 @@ logging.basicConfig(
 intents = discord.Intents.default()
 intents.members = True
 
-# Instantiate the bot and web scraper
+# Instantiate the bot
 bot = Bot(command_prefix="!", intents=intents)
-scraper = utils.scraper.Scraper()
 
 # Load all of the cogs in the cogs/ folder
 for filename in os.listdir("./bot/cogs"):
     if filename.endswith(".py") and filename != "__init__.py":
         bot.load_extension(f"cogs.{filename[:-3]}")
 
+# Connect to the mongodb cluster
+connect(host=os.environ['DBURL'])
+
 # Run when the bot succesfully logs into Discord
 @bot.event
 async def on_ready():
-    # Sets the spoiler status to False by default
-    bot.spoiler = False
-
-    # Starts the update info event loop
-    # last_pod and new_pod attributes are created for use in the loop
-    bot.last_pod = []
-    bot.new_pod = False
-    update_info.start()
-
-    # Starts the update profiles loop
-    update_profiles.start()
-
-    # For each guild that the bot is logged into, prints user, guild name and ID
+        # For each guild that the bot is logged into, prints user, guild name and ID
     for i in bot.guilds:
         logging.info(f"Logged in as \'{bot.user}\' in \'{i.name}\' (Guild ID: {i.id})")
+    
+    # Start background task loops
+    logging.info("Starting new_podcast_watcher")
+    new_podcast_watcher.start()
+    logging.info("Starting new_show_watcher")
+    new_show_watcher.start()
+    logging.info("Starting new_profile_watcher")
+    new_profile_watcher.start()
+    logging.info("Starting spoiler_mode_watcher")
+    spoiler_mode_watcher.start()
+
+    # Store guild, channel and user IDs in bot attributes
+    logging.info("Creating bot attributes from IDs")
+    utils.tasks.set_ids(bot)
+
+    logging.info("Finished logging in")
 
 ###
 # Background Tasks
@@ -72,43 +83,140 @@ async def on_ready():
 # https://discordpy.readthedocs.io/en/latest/ext/tasks/index.html?highlight=tasks%20loop#discord.ext.tasks.Loop
 ###
 
-# Background task to periodically run the scraper and store data in variables
-@tasks.loop(minutes=10)
-async def update_info():
-    # Establish whether there is a new pod episode by checking:
-    # - bot.last_pod isn't an empty dict (ie. the bot has restarted since the last update) 
-    # - the previously stored bot.last_pod is different to a new scrape of the last pod ep
-    # If both are true, then the bot.new_pod attr is True
-    if bot.last_pod != [] and bot.last_pod != scraper.last_pod():
-        bot.new_pod = True
+# Frequently look for new podcasts episodes in the DB
+@tasks.loop(minutes=5)
+async def new_podcast_watcher():
+    logging.debug("Running new_podcast_watcher")
 
-    # Use Scraper methods to store attrs to speed up command response by eliminating the need for the scrapes to be run every time
-    try:
-        bot.pod_info = scraper.pod_info()
-        bot.last_pod = scraper.last_pod()
-        bot.next_shows = scraper.shows("schedule")
-        bot.last_shows = scraper.shows("result")
-        logging.info("Info Variables Updated")
+    # DB query to return podcast episodes tagged as new
+    new_podcasts = PodcastEpisode.objects(new=True)
 
-        # If new_pod was earlier set to True, creates a message and posts it to the NEW_POD_CHANNEL (currently #general)
-        # Finish by setting new_pod back to False for the next loop
-        if bot.new_pod:
-            embed = utils.embeds.pod_episode_embed(bot.last_pod)
-            channel = bot.get_channel(NEW_POD_CHANNEL)
-            await channel.send("@here New Pod!")
-            await channel.send(embed=embed)
-            bot.new_pod = False
+    if new_podcasts:
+        # Loop through results on the remote chance that more than one episode was found
+        for p in new_podcasts:
+            logging.info("New podcast episode found: " + p.title)
+            await bot.general_channel.send(content="@here New Pod!", 
+                               embed=utils.embeds.pod_episode_embed(p))
+            p.update(new=False)
 
-    except:
-        logging.error("Unable to Update Info Variables:\n" + Exception)
+# Alert the discord to shows added to the schedule on njpw1972.com
+@tasks.loop(minutes=30)
+async def new_show_watcher():
+    logging.debug("Running new_show_watcher")
 
-# Background task to pull wrestler profiles and store in a variable.
-# More intensive than the other scraper and will change less often, so only runs once a day
-@tasks.loop(hours=24)
-async def update_profiles():
-    bot.profiles = scraper.profiles()
-    logging.info("Profiles Updated")
+    # DB query to return podcast episodes tagged as new
+    new_shows = ScheduleShow.objects(new=True)
 
+    if new_shows:
+        for s in new_shows:
+            logging.info("New scheduled show found: " + s.name)
+        try:
+            await bot.general_channel.send(content="New show(s) added to the schedule:",
+                            embed=utils.embeds.new_shows_embed(new_shows))
+        except Exception:
+            await bot.general_channel.send(content="New show(s) added to the schedule:",
+                            embed=utils.embeds.new_shows_embed(new_shows[0:2]))
+        new_shows.update(new=False)
+
+# Alert the discord to wrestler profiles added to on njpw1972.com
+@tasks.loop(hours=6)
+async def new_profile_watcher():
+    logging.debug("Running new_profile_watcher")
+
+    # DB query to return podcast episodes tagged as new
+    new_profiles = Profile.objects(new=True)
+
+    if new_profiles:
+        await bot.general_channel.send("New Profile(s) Added: ")
+        for p in new_profiles:
+            logging.info("New profile found: " + p.name)
+            await bot.general_channel.send(embed=utils.embeds.profile_embed(p))
+        new_profiles.update(new=False)
+
+# Check for shows starting soon and set spoiler mode
+# Also check for spoiler modes which have ended
+@tasks.loop(minutes=3.5)
+async def spoiler_mode_watcher():
+    logging.debug("Running spoiler_mode_watcher")
+
+    # DB query to return njpw shows which start in the next 5 minutes and continue if any exist
+    starting_shows = ScheduleShow.objects(date__lte=datetime.now() + timedelta(minutes=5))
+    if starting_shows:
+        for s in starting_shows:
+            # Check that spoiler mode hasn't already been triggered for that show
+            if not SpoilerMode.objects(title=s.name):
+
+                # Build spoiler_mode document
+                spoiler_mode = SpoilerMode(
+                    mode = "njpw",
+                    title=s.name,
+                    ends_at=s.date + timedelta(hours=s.spoiler_hours),
+                    thumb=s.thumb
+                )
+
+                # Save the document to the DB
+                spoiler_mode.save()
+
+                # Notify @here of the starting show and include the embed which lists the end time
+                await bot.general_channel.send(content=f"@here **{spoiler_mode.title}** starting soon. Head to {bot.njpw_spoiler_channel.mention} for spoiler chat.",
+                        embed=utils.embeds.spoiler_mode_embed(spoiler_mode))
+
+                await bot.njpw_spoiler_channel.edit(topic=spoiler_mode.title)
+                
+                logging.info(f"NJPW #spoiler-zone time started for {spoiler_mode.title}, ends in {s.spoiler_hours}")
+
+    # DB query to return non-njpw shows which start in the next 5 minutes and continue if any exist
+    non_njpw_shows = NonNjpwShow.objects(date__lte=datetime.now() + timedelta(minutes=5))
+    if non_njpw_shows:
+        for s in non_njpw_shows:
+            # Check that spoiler mode hasn't already been triggered for that show
+            if not SpoilerMode.objects(title=s.name):
+
+                # Build spoiler_mode document
+                spoiler_mode = SpoilerMode(
+                    mode = "non_njpw",
+                    title=s.name,
+                    ends_at=s.date + timedelta(hours=s.spoiler_hours)
+                )
+
+                # Save the document to the DB
+                spoiler_mode.save()
+
+                # Notify @here, in the non-njpw chat channel of the starting show and include the embed which lists the end time
+                await bot.non_njpw_channel.send(
+                    content=f"@here **{spoiler_mode.title}** starting soon. Head to {bot.non_njpw_spoiler_channel.mention} for spoiler chat",
+                    embed=utils.embeds.spoiler_mode_embed(spoiler_mode)
+                )
+
+                await bot.non_njpw_spoiler_channel.edit(topic=spoiler_mode.title)
+
+                logging.info(f"Non NJPW #spoiler-zone time started for **{spoiler_mode.title}**, ends in {s.spoiler_hours} hours")
+
+    # DB query to find spoiler_mode events which have now ended
+    ending_shows = SpoilerMode.objects(ends_at__lt=datetime.now())
+    if ending_shows:
+        for s in ending_shows:          
+            # For ended spoiler modes, send notifications to the relevant channels
+            if s.mode == "njpw":
+                if SpoilerMode.object(mode=s.mode).count() < 2:
+                    await bot.general_channel.send(
+                        content=f"@here **{s.title}** _#spoiler-zone_ time has ended. Spoil away.\n\nNext show:",
+                        embed=utils.embeds.schedule_shows_embed(ScheduleShow.objects(date__gt=datetime.now())[:1], 1)
+                    )
+                else:
+                    await bot.general_channel.send(
+                        content=f"@here **{s.title}** _#spoiler-zone_ time has ended. Spoil away.\nOngoing spoiler embargo:",
+                        embed=utils.embeds.spoiler_mode_embed(ending_shows[1])
+                        )
+            elif s.mode == "non_njpw":
+                await bot.non_njpw_channel.send(
+                    f"@here **{s.title}** _#spoiler-zone_ time has ended. Spoil away."
+                )
+
+            # Remove the spoiler mode document from the DB
+            s.delete()
+
+            logging.info(f"{s.mode} spoiler-zone time ended for {s.title}")
 
 # Starts the bot when the module is run
 # TOKEN is defined in constants and should be set for staging or prod environments

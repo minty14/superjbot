@@ -8,6 +8,9 @@ https://discordpy.readthedocs.io/en/latest/api.html?highlight=discord%20embed#di
 """
 from discord import Embed
 
+from datetime import datetime
+from pytz import timezone
+
 # Build an embed with the general info of the podcast
 # All information is currently pulled from the show's RedCircle page
 def pod_info_embed(pod_info, last_pod):
@@ -24,7 +27,7 @@ def pod_info_embed(pod_info, last_pod):
     embed.add_field(
         name="Latest Episode",
         value=last_pod["title"] + " - " +
-        last_pod["published"] + "\n" + last_pod["link"],
+        last_pod["published"].strftime("%a %d %b %Y") + "\n" + last_pod["link"],
         inline=False
     )
 
@@ -58,6 +61,12 @@ def pod_episode_embed(last_pod):
     )
 
     embed.add_field(
+        name="Download",
+        value=last_pod["file"],
+        inline=False
+    )
+
+    embed.add_field(
         name="Published",
         value=last_pod["published"]
     )
@@ -69,46 +78,127 @@ def pod_episode_embed(last_pod):
 
     return embed
 
-# Build an embed with info on past or future shows
+# Build an embed with info on future shows
 # The number of shows to display declared in an argument
-def shows_embed(type, shows, number_of_shows):
-    # Splice the requested number of shows from the shows dict
-    events = shows[:number_of_shows]
-    
+def schedule_shows_embed(shows, number_of_shows):
     # Build the title and intro section of the embed depending on the types, and number, of shows
-    if type == "schedule":
-        embed = Embed(
-            title="Upcoming NJPW Shows",
-            url="https://www.njpw1972.com/schedule",
-            description=f"Here's the next {number_of_shows} shows!"
-        )
+    if number_of_shows == 1:
+        show = shows[0]
         
-    elif type == "result":
         embed = Embed(
-            title="Previous NJPW Shows",
-            url="https://www.njpw1972.com/result",
-            description=f"Here's the previous {number_of_shows} shows!"
+                title=show.name,
+                description=show.card
+            )
+
+        # Some fields are blank on njpw1972.com and this causes errors when trying to add a field
+        # Check whether they exist before creating the field
+        
+        if show.city:
+            embed.add_field(
+                name="City",
+                value=show.city
+            )
+
+        if show.venue:
+            embed.add_field(
+                name="Venue",
+                value=show.venue
+            )
+
+        embed.add_field(
+            name="Time",
+            value=zone_times_str(show.date),
+            inline=False
+        )
+                
+    
+    else:
+        embed = Embed(
+                title="Upcoming NJPW Shows",
+                url="https://www.njpw1972.com/schedule",
+                description=f"Here's the next {number_of_shows} shows..."
+            )
+
+        for show in shows:
+
+            embed.add_field(
+                name=show.name,
+                value=f"Card: {show.card}\nCity: {show.city}\nVenue: {show.venue}\n" + zone_times_str(show.date),
+                inline=False
+            )
+    
+    # Use the logo of the next show as the embed thumbnail
+    embed.set_thumbnail(url=shows[0].thumb)
+
+    return embed
+
+# Build an embed with info on past shows
+# The number of shows to display declared in an argument
+def result_shows_embed(shows, number_of_shows):
+    # Build the title and intro section of the embed depending on the types, and number, of shows
+    embed = Embed(
+        title="Previous NJPW Shows",
+        url="https://www.njpw1972.com/result",
+        description=f"Here's the previous {number_of_shows} show(s)!"
+    )
+
+    for show in shows:
+
+        embed.add_field(
+            name=show["name"],
+            value=f"{show.date.strftime(datefmt)}\nCity: {show.city}\nVenue: {show.venue}",
+            inline=False
         )
     
     # Use the logo of the next show as the embed thumbnail
-    embed.set_thumbnail(url=events[0]["thumb"])
+    embed.set_thumbnail(url=shows[0]["thumb"])
 
-    # Create an entry for each of the requested shows
-    for event in events:
+    return embed
+
+# Build an embed with info on shows added to the schedule
+def new_shows_embed(shows):
+    embed = Embed()
+
+    for show in shows:
+
         embed.add_field(
-            name=event["name"],
-            value=f"""Date: {event["date"]}\nCity: {event["city"]}\nVenue: {event["venue"]}""",
+            name=show["name"],
+            value=f"City: {show.city}\nVenue: {show.venue}\n" + zone_times_str(show.date),
             inline=False
         )
 
+    embed.set_thumbnail(
+        url=shows[0]["thumb"]
+    )
+
     return embed
+
+# Build an embed with show title and end times for the start of a spoiler mode
+def spoiler_mode_embed(spoiler_mode):
+
+    embed = Embed(
+        title=spoiler_mode.title
+    )
+
+    embed.add_field(
+        name="Spoiler mode ends at:",
+        value=zone_times_str(spoiler_mode.ends_at)
+    )
+
+    if spoiler_mode.thumb:
+        embed.set_thumbnail(
+            url=spoiler_mode.thumb
+        )
+    
+    return embed
+
 
 # Build an embed with a wrestler's profile using a provided dict
 # Profile info is pulled from njpw1972.com/profile
 def profile_embed(profile):
     
-    if profile["unit"] in colours:
-        colour = colours[profile["unit"]]
+    if profile["attributes"]["unit"] in colours:
+        colour = colours[profile["attributes"]["unit"]]
     else:
         colour = 8359053
 
@@ -122,17 +212,10 @@ def profile_embed(profile):
         url=profile["render"]
     )
 
-    # Profile attributes aren't consistent across all profiles on njpw1972.com, so build a list of all possible attributes
-    optional_attributes = [
-        "unit", "height", "weight", "finisher", "theme", "debut", "birthplace", "birthday", "blood type", "blog", "twitter"
-    ]
-
-    # For each of the possible attributes, check if they exist in the current profile dict and create an embed field if they are
-    for attr in optional_attributes:
-        if profile[attr]:
-            embed.add_field(
-                name=attr.title(),
-                value=profile[attr]
+    for a in profile["attributes"]:
+        embed.add_field(
+                name=a.title(),
+                value=profile["attributes"][a]
             )
 
     return embed
@@ -141,8 +224,8 @@ def profile_embed(profile):
 # Bio info is pulled from njpw1972.com/profile
 def bio_embed(profile):
 
-    if profile["unit"] in colours:
-        colour = colours[profile["unit"]]
+    if profile["attributes"]["unit"] in colours:
+        colour = colours[profile["attributes"]["unit"]]
     else:
         colour = 8359053
 
@@ -164,6 +247,7 @@ def bio_embed(profile):
 
     return embed
 
+# Faction specific Discord colour codes
 colours = {
         "Suzuki gun": 12745742,
         "Los Ingobernables de Japón": 15158332,
@@ -172,3 +256,19 @@ colours = {
         "NJPW main unit": 2123412,
         "The Empire": 3066993
     }
+
+# Variables and functions to make managing time formatting easier
+timefmt = "%H:%M %Z"
+datefmt = "%a %d %b %Y"
+dtfmt = "%a %d %b %Y %H:%M %Z"
+zone_PST = timezone("America/Los_Angeles")
+zone_EST = timezone("America/New_York")
+zone_GMT = timezone("Europe/London")
+zone_JST = timezone("Asia/Tokyo")
+
+def zone_time(time, zone, fmt):
+    tz_time = time.astimezone(zone)
+    return tz_time.strftime(fmt)
+
+def zone_times_str(date):
+    return f"{zone_time(date, zone_PST, dtfmt)}\n{zone_time(date, zone_EST, dtfmt)}\n{zone_time(date, zone_GMT, dtfmt)}\n{zone_time(date, zone_JST, dtfmt)}"
