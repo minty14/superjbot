@@ -1,15 +1,18 @@
 """
-A web scraper Class instantiated once the bot starts running and is logged in. 
+A web scraper Class instantiated once the bot starts running and is logged in
 
-Scrapes information from commonly used sources as part of the update_info loop.
+Provides class methods to scrape information from various sources to then be stored in the DB
 """
 from bs4 import BeautifulSoup
+import logging
 import requests
+import datetime
+import pytz
 
 class Scraper():
     def __init__(self):
         # Store some commonly used URLs
-        self.pod_info_url = "https://redcircle.com/shows/super-j-cast/episodes/d7179957-bb87-4208-9117-a1c6f43b9229"
+        self.pod_info_url = "https://redcircle.com/shows/super-j-cast/"
         self.pod_rss_feed = "https://feeds.redcircle.com/cf1d4e82-ac3d-47e6-948d-1d299cf6744e"
         self.njpw_profiles_url = "https://www.njpw1972.com/profiles/"
 
@@ -23,9 +26,11 @@ class Scraper():
 
     # Pull general info about the podcast and create a dict
     def pod_info(self):
+        logging.info("Updating podcast information")
+        
         soup = self.create_soup(self.pod_info_url, "lxml")
 
-        info = {
+        pod_info = {
             "title": soup.find(class_="show-title").get_text().strip(),
             "description": soup.find_all("div", class_="show-page__about")[0].p.get_text().strip(),
             # This isn't returning the right value at the moment, so using the hardcoded link
@@ -34,50 +39,117 @@ class Scraper():
             "url": self.pod_info_url
         }
 
-        return info
+        logging.debug("pod_info: " + str(pod_info))
+
+        return pod_info
 
     # Pull data on the latest podcast episode direct from the RSS feed
-    def last_pod(self):
+    def pod_episode(self):
+        logging.info("Updating latest podcast episode")
+
         soup = self.create_soup(self.pod_rss_feed, "xml")
         
         # .find pulls the first item in the RSS feed, which will be the latest episode
         item = soup.find("item")
 
-        latest = {
+        # Remove some of the formatting around the date and convert to date object
+        published = datetime.datetime.strptime(
+            " ".join(item.pubDate.text.split(" ")[0:4]), 
+            "%a, %d %b %Y"
+            ).date()
+
+        # Put the last episode info into a dict and return it
+        last_pod = {
             "title": item.title.text,
             "description": item.description.text,
             "link": item.link.text,
-            # Remove some of the formatting around the date
-            "published": " ".join(item.pubDate.text.split(" ")[0:4]), 
+            "published": published, 
             "duration": item.duration.text,
-            "file": item.enclosure.url
+            "file": item.enclosure.get("url")
         }
 
-        return latest
+        logging.debug("last_pod: " + str(last_pod))
+
+        return last_pod
+    
+    # Pull data from all podcast episodes in the RSS feed
+    def all_episodes(self):
+        logging.info("Updating all podcast episodes")
+
+        soup = self.create_soup(self.pod_rss_feed, "xml")
+        items = soup.find_all("item")
+
+        all_pods = []
+
+        for item in items:
+            published = datetime.datetime.strptime(
+            " ".join(item.pubDate.text.split(" ")[0:4]), 
+            "%a, %d %b %Y"
+            ).date()
+
+        # Put the last episode info into a dict and return it
+            all_pods = {
+                "title": item.title.text,
+                "description": item.description.text,
+                "link": item.link.text,
+                "published": published, 
+                "duration": item.duration.text,
+                "file": item.enclosure.get("url")
+            }
+
+            all_pods.append(episode)
+
+        logging.debug("all_pods: " + str(all_pods))
+        
+        return all_pods
+
 
     # Pull info on past or future shows
     # type is either result (past) or schedule (future)
     def shows(self, type):
-        soup = self.create_soup("https://www.njpw1972.com/" + type + "/", "lxml")
+        logging.info("Updating " + type + " shows")
+        
+        shows = []
+        
+        for x in range(1, 3):
+            soup = self.create_soup("https://www.njpw1972.com/" + type + "?pageNum=" + str(x), "lxml")
+            all_events = soup.find_all("div", class_="event")
 
-        all_events = soup.find_all("div", class_="event")
+            for event in all_events:
+                
+                    event_name = event.find("h3").get_text().strip()
+                    dates = event.find_all("li")
+                    for date in dates:
+                        try:
+                            show_dict = {
+                                "name": event_name,
+                                "city": date.find("p", class_="city").get_text().strip(),
+                                "venue": date.find("p", class_="venue").get_text().strip(),
+                                "thumb": event.find("img")["src"],
+                                "card": date.find("a")["href"]
+                            }
 
-        events_list = []
+                            date_time = " ".join(date.find("p", class_="date").get_text().strip().split())
+                            date = " ".join(date_time.split(" ")[:4])
+                            time = date_time.split("BELL")[1].strip()
+                            if "EST" in time:
+                                tz = pytz.timezone("US/Eastern")
+                                time = time[:7]
+                                date_time = date + " " + time
+                                show_dict["date"] = tz.localize(datetime.datetime.strptime(date_time, "%a. %B. %d. %Y %I:%M%p"))
+                            else:
+                                tz = pytz.timezone("Asia/Tokyo")
+                                date_time = date + " " + time
+                                show_dict["date"] = tz.localize(datetime.datetime.strptime(date_time, "%a. %B. %d. %Y %H:%M"))
+                        
+                            logging.debug("show_dict: " + str(show_dict))
 
-        for event in all_events:
-            event_name = event.find("h3").get_text().strip()
-            dates = event.find_all("li")
-            for date in dates:
-                show_dict = {
-                    "name": event_name,
-                    "date": " ".join(date.find("p", class_="date").get_text().strip().split()),
-                    "city": date.find("p", class_="city").get_text().strip(),
-                    "venue": date.find("p", class_="venue").get_text().strip(),
-                    "thumb": event.find("img")["src"]
-                }
-                events_list.append(show_dict)
+                            shows.append(show_dict)
+                        
+                        except Exception as e:
+                            logging.error(f"Unable to scrape show {event_name}: " + str(e))
 
-        return events_list
+        return shows
 
     # TODO: create function to pull the results from past show(s)
     def results(self):
@@ -86,8 +158,9 @@ class Scraper():
     # Build a list of the profiles on njpw1972.com
     # Loop through the profiles to pull more info from each wrestler's individual profile page
     def profiles(self):
-        soup = self.create_soup(self.njpw_profiles_url, "lxml")
+        logging.info("Updating profiles")
 
+        soup = self.create_soup(self.njpw_profiles_url, "lxml")
         profile_list = soup.find("ul", class_="wrestlerList").find_all("li")
 
         # Create the list of profile dicts
@@ -98,10 +171,12 @@ class Scraper():
             profile_dict = {
                 "name": profile.find("p", class_="name").get_text().strip(),
                 "link": profile.find("a")["href"],
-                "render": profile.find("img")["src"]
+                "render": profile.find("img")["src"],
+                "attributes": {}
             }
             profiles.append(profile_dict)
-            print(f"Found {profile_dict['name']}")
+
+            logging.debug("Found profile: " + profile_dict['name'])
 
         # Create a dict of possible attributes so that we can loop through try/except statements
         # [name of key in wrestler's dict]: [text used to identify this data in the soup]
@@ -118,34 +193,35 @@ class Scraper():
         }
 
         # For each profile found on the profiles page and pull all of their attributes into a dict
-        for pf in profiles:
-            print(f"Adding Attributes to {pf['name']}")
-            pf_soup = self.create_soup(pf["link"], "lxml").find("div", class_="profileDetail")
+        for profile in profiles:
+            profile_soup = self.create_soup(profile["link"], "lxml").find("div", class_="profileDetail")
 
             # Loop through the profile_attributes dict, adding the key and value to the individual dict of the wrestler
             for key in profile_attributes:
                 # BeautifulSoup throws an AttributeError exception if the element is not found, so we need to catch these because the attributes listed for each wrestler is not consistent
                 try:
-                    pf[key] = pf_soup.find("dt", text=profile_attributes[key]).findNext("dd").get_text().strip()
+                    profile["attributes"][key] = profile_soup.find("dt", text=profile_attributes[key]).findNext("dd").get_text().strip()
                 except AttributeError:
-                    pf[key] = None
+                    pass
 
             # Find UNIT separately from the loop as it's stored in a p tag
             try:
-                pf["unit"] = pf_soup.find("p", text="UNIT").findNext("p").get_text().strip()
+                profile["attributes"]["unit"] = profile_soup.find("p", text="UNIT").findNext("p").get_text().strip()
             except AttributeError:
-                pf["unit"] = None
+                pass
 
             # For twitter, we're pulling the link, not the text, so this is done separately
             try:
-                pf["twitter"] = pf_soup.find("dt", text="TWITTER").findNext("a")["href"]
+                profile["attributes"]["twitter"] = profile_soup.find("dt", text="TWITTER").findNext("a")["href"]
             except AttributeError:
-                pf["twitter"] = None
+               pass
 
             # The bio is in a textBox div
             try:
-                pf["bio"] = pf_soup.find("div", class_="textBox").get_text().strip()
+                profile["bio"] = profile_soup.find("div", class_="textBox").get_text().strip()
             except AttributeError:
-                pf["bio"] = None
+                pass
+
+            logging.debug("profile: " + str(profile))
         
         return profiles

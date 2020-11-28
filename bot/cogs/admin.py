@@ -5,7 +5,8 @@ import logging
 from discord.ext import commands
 import discord
 
-from utils import checks
+from utils import checks, tasks
+from database.models import SpoilerMode
 
 class Admin(commands.Cog):
     def __init__(self, bot):
@@ -44,28 +45,14 @@ class Admin(commands.Cog):
     #   - Alerts @here when the spoiler embargo is lifted
     #   - Displays a reminder to new users that spoiler chat should go in the relevant channel
     @commands.command(name="setspoiler", 
-        brief="Check whether there's currently a spoiler embargo",
+        brief="CURRENTLY DISABLED",
         help="""Sets spoiler-zone mode to ON, for the specified number of hours.
                 Sets spoiler-zone mode to OFF if already running.""",
         usage="[number_of_time] (default=12, valid=WHOLE NUMBERS) [unit_of_time] (default=h, valid=s,m,h,d)\neg. \"!spoiler 24 h\""
         )
     @commands.check(checks.is_admin)
-    async def set_spoiler(self, ctx, time: int = 12, unit="h"):
-        # sleep time is set in seconds, so create a multiplier depending on the time unit set
-        units = {"s": 1, "m": 60, "h": 3600, "d": 86400}
-
-        # spoiler mode is not currently active - set mode to on, display an @here message in the channel it was invoked in, and sleep for the specified time
-        if not self.bot.spoiler:
-            self.bot.spoiler = True
-            await ctx.send(f"@here We're now in the _spoiler-zone_, keep show chat in the relevant spoiler-zone channel\n\nSpoiler embargo will lift in {str(time)}{unit}")
-            logging.info(f"Spoiler mode set by {ctx.author} for {str(time)}{unit}")
-            await asyncio.sleep(time * units[unit])
-
-        # spoiler mode is currently active - set mode off and inform @here
-        self.bot.spoiler = False
-        await ctx.send("@here _Spoiler embargo lifted, chat away!_")
-        await ctx.invoke(self.bot.get_command("nextshows"))
-        logging.info(f"Spoiler mode lifted")
+    async def set_spoiler(self, ctx, hours: int = 12, mode="non-njpw", title="today's show"):
+        pass    
 
     ###
     # Cog Controls
@@ -90,7 +77,7 @@ class Admin(commands.Cog):
                 await ctx.send(f"\"{cog}\" category loaded")
                 logging.debug(f"{cog} loaded by {ctx.author}")
             except Exception as e:
-                await ctx.send(f"Could not load \"{cog}\" category")
+                await ctx.send(f"Could not load \"{cog}\" category: " + e)
                 logging.error(f"Error loading {cog}: " + e)
         
     # Unload the extension(s) with the given cog name(s)
@@ -112,7 +99,7 @@ class Admin(commands.Cog):
                 await ctx.send(f"\"{cog}\" category unloaded")
                 logging.debug(f"{cog} unloaded by {ctx.author}")
             except Exception as e:
-                await ctx.send(f"Could not unload \"{cog}\" category")
+                await ctx.send(f"Could not unload \"{cog}\" category: " + e)
                 logging.error(f"Error unloading {cog}: " + e)
         
     # Reload the extension(s) with the given cog name(s)

@@ -2,6 +2,7 @@ from discord.ext import commands
 import discord
 
 import utils.embeds
+from database.models import Profile
 
 class Profiles(commands.Cog):
     def __init__(self, bot):
@@ -25,12 +26,11 @@ class Profiles(commands.Cog):
         if len(name) < 3:
             await ctx.send("Please enter at least 3 characters to find a profile")
         else:
-            async with ctx.typing():
-            # loop through the stored profiles and display any profiles that match
-                for pf in self.bot.profiles:
-                    if name.lower() in pf["name"].lower():
-                        embed = utils.embeds.profile_embed(pf)
-                        await ctx.send(embed=embed)
+            profiles = Profile.objects(name__icontains=name).exclude("_id", "bio")
+            for p in profiles:
+                embed = utils.embeds.profile_embed(p)
+                await ctx.send(embed=embed)
+
     
     # Display the bio that matches the searched name
     # Uses a keyword only argument so that users can search names with spaces in without ""s
@@ -47,12 +47,10 @@ class Profiles(commands.Cog):
         if len(name) < 3:
             await ctx.send("Please enter at least 3 characters to find a profile")
         else:
-            async with ctx.typing():
-            # loop through the stored profiles and display any profiles that match
-                for pf in self.bot.profiles:
-                    if name.lower() in pf["name"].lower():
-                        embed = utils.embeds.bio_embed(pf)
-                        await ctx.send(embed=embed)
+            bios = Profile.objects(name__icontains=name).exclude("_id")
+            for b in bios:
+                embed = utils.embeds.bio_embed(b)
+                await ctx.send(embed=embed)
 
 def setup(bot):
     bot.add_cog(Profiles(bot))
