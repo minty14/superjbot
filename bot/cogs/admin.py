@@ -5,7 +5,7 @@ import logging
 from discord.ext import commands
 import discord
 
-from utils import checks, tasks
+from utils import checks
 from database.models import SpoilerMode
 
 class Admin(commands.Cog):
