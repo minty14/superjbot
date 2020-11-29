@@ -38,6 +38,8 @@ class Admin(commands.Cog):
         )
     @commands.check(checks.is_admin)
     async def kill(self, ctx):
+        await ctx.send("Bot stopping/restarting")
+        logging.info(f"Bot stopped with {ctx.invoked_with} by {ctx.author}")
         await self.bot.close()
 
     # Sets the spoiler variable to true, which does the following:
