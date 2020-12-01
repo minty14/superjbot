@@ -53,7 +53,7 @@ class ScheduleShow(Document):
     venue = StringField()
     thumb = StringField()
     card = URLField()
-    spoiler_hours = IntField(default=15)
+    spoiler_hours = IntField(default=14)
     updated_at = DateTimeField()
     added_at = DateTimeField(default=datetime.datetime.now)
 
@@ -65,7 +65,7 @@ class ScheduleShow(Document):
 class NonNjpwShow(Document):
     name = StringField(required=True, unique_with="date")
     date = DateTimeField(required=True, unique_with="name")
-    spoiler_hours = IntField(default=15)
+    spoiler_hours = IntField(default=14)
     added_at = DateTimeField(default=datetime.datetime.now)
 
     meta = {

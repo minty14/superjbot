@@ -1,10 +1,5 @@
-import asyncio
 import logging
-from datetime import datetime, timedelta
 
-from discord.ext import tasks
-
-import utils.embeds
 from settings.constants import (
     OWNER_ID, GUILD_ID, GENERAL_CHANNEL, NON_NJPW_CHANNEL, 
     NEW_MEMBER_CHANNEL, RULES_CHANNEL, NEW_POD_CHANNEL,
@@ -21,6 +16,10 @@ def set_ids(bot):
     bot.new_pod_channel = bot.get_channel(NEW_POD_CHANNEL)
     logging.debug(
         f"new_pod_channel: {bot.general_channel.name}, id: {bot.general_channel.id}, category: {bot.general_channel.category}")
+
+    bot.non_njpw_channel = bot.get_channel(NON_NJPW_CHANNEL)
+    logging.debug(
+        f"non_njpw_spoiler_channel: {bot.general_channel.name}, id: {bot.general_channel.id}, category: {bot.general_channel.category}")
     
     bot.new_member_channel = bot.get_channel(NEW_MEMBER_CHANNEL)
     logging.debug(

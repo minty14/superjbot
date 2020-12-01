@@ -1,12 +1,14 @@
-import asyncio
 import os
 import logging
+from datetime import datetime, timedelta
+from mongoengine import errors
 
-from discord.ext import commands
 import discord
+from discord.ext import commands
 
 from utils import checks
-from database.models import SpoilerMode
+from utils import embeds
+from database.models import SpoilerMode, ScheduleShow
 
 class Admin(commands.Cog):
     def __init__(self, bot):
@@ -47,14 +49,70 @@ class Admin(commands.Cog):
     #   - Alerts @here when the spoiler embargo is lifted
     #   - Displays a reminder to new users that spoiler chat should go in the relevant channel
     @commands.command(name="setspoiler", 
-        brief="CURRENTLY DISABLED",
-        help="""Sets spoiler-zone mode to ON, for the specified number of hours.
-                Sets spoiler-zone mode to OFF if already running.""",
-        usage="[number_of_time] (default=12, valid=WHOLE NUMBERS) [unit_of_time] (default=h, valid=s,m,h,d)\neg. \"!spoiler 24 h\""
+        brief="Control a custom spoiler-zone mode",
+        help="""Start a customer spoiler-zone mode, or stop an existing one.
+                !setspoiler takes 3 inputs, but 2 are optional:
+                "Event Name" - The name of the show or event, used to identify the spoiler-mode
+                [njpw|non-njpw|off] - Set the type of spoiler mode (njpw or non-njpw), or end an existing spoiler mode with "off"
+                [number_of_hours] - Set the number of hours the spoiler-mode will be in effect for, starting immediately
+                
+                If not specified, the defaults are: mode = non-njpw, hours = 14
+                To set a different number of hours, you MUST also provide the mode, even if it is the default""",
+        usage="\"Event Name\" [njpw|non-njpw|off] [number_of_hours]"
         )
     @commands.check(checks.is_admin)
-    async def set_spoiler(self, ctx, hours: int = 12, mode="non-njpw", title="today's show"):
-        pass    
+    async def set_spoiler(self, ctx, title, mode="non-njpw", hours: int = 14):
+        
+        # create show doc
+        spoiler_mode = SpoilerMode(
+            mode=mode,
+            title=title,
+            ends_at=datetime.now() + timedelta(hours=hours),
+            thumb=None
+        )
+        
+        try:
+            # send to relevant channel
+            if mode == "njpw":
+                spoiler_mode.save()
+                await self.bot.general_channel.send(
+                            content=f"@here **{spoiler_mode.title}** starting. Head to {self.bot.njpw_spoiler_channel.mention} for spoiler chat.",
+                            embed=embeds.spoiler_mode_embed(spoiler_mode)
+                        )
+
+            elif mode == "non-njpw":
+                spoiler_mode.save()
+                await self.bot.non_njpw_channel.send(
+                            content=f"@here **{spoiler_mode.title}** starting. Head to {self.bot.non_njpw_spoiler_channel.mention} for spoiler chat",
+                            embed=embeds.spoiler_mode_embed(spoiler_mode)
+                        )
+
+            elif mode == "off":
+                spoiler_mode = SpoilerMode.objects.get(title=title)
+                spoiler_mode.delete()
+                if spoiler_mode.mode == "njpw":
+                    await self.bot.general_channel.send(
+                            content=f"@here **{title}** _#spoiler-zone_ time has ended. Spoil away.\n\nNext show:",
+                            embed=embeds.schedule_shows_embed(ScheduleShow.objects(date__gt=datetime.now())[:1], 1)
+                        )
+
+                if spoiler_mode.mode == "non-njpw":
+                    await self.bot.non_njpw_channel.send(
+                        f"@here **{title}** _#spoiler-zone_ time has ended. Spoil away."
+                    )
+
+            else:
+                await ctx.send("_mode_ must be one of: \"njpw\", \"non-njpw\", \"off\"")
+                spoiler_mode.delete()
+        
+        except errors.NotUniqueError:
+            spoiler_mode = SpoilerMode.objects.get(title=title)
+            await ctx.send(content=f"Event \"{title}\" already exists",
+                            embed=embeds.spoiler_mode_embed(spoiler_mode))
+
+        except errors.DoesNotExist:
+                    await ctx.send(content=f"Event \"{title}\" does not exist.")
+
 
     ###
     # Cog Controls
@@ -62,7 +120,7 @@ class Admin(commands.Cog):
 
     # Load the extension(s) with the given cog name(s)
     # Can take multiple cog names as arguments
-    @commands.command(name="load", 
+    @commands.command(name="load",
         brief="Load/enable the category with the given name",
         help="""Load/enable the category with the given name. Only works if the category name given is not already loaded/enabled.
                 

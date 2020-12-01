@@ -105,8 +105,10 @@ class Tasks(commands.Cog):
                     spoiler_mode.save()
 
                     # Notify @here of the starting show and include the embed which lists the end time
-                    await self.bot.general_channel.send(content=f"@here **{spoiler_mode.title}** starting soon. Head to {bot.njpw_spoiler_channel.mention} for spoiler chat.",
-                            embed=utils.embeds.spoiler_mode_embed(spoiler_mode))
+                    await self.bot.general_channel.send(
+                        content=f"@here **{spoiler_mode.title}** starting soon. Head to {bot.njpw_spoiler_channel.mention} for spoiler chat.",
+                        embed=utils.embeds.spoiler_mode_embed(spoiler_mode)
+                    )
 
                     await self.bot.njpw_spoiler_channel.edit(topic=spoiler_mode.title)
                     
