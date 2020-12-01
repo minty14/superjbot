@@ -22,6 +22,12 @@ GUILD_ID = int(os.environ["GUILD_ID"])
 # Channel IDs
 ###
 
+# ID of the general text-chat channel
+GENERAL_CHANNEL = int(os.environ["GENERAL_CHANNEL"])
+
+# ID of the non-njpw chat channel
+NON_NJPW_CHANNEL = int(os.environ["NON_NJPW_CHANNEL"])
+
 # ID of the text channel to display messages to new users. Typically the default channel
 NEW_MEMBER_CHANNEL = int(os.environ["NEW_MEMBER_CHANNEL"])
 
