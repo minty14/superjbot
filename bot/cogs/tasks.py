@@ -106,7 +106,7 @@ class Tasks(commands.Cog):
 
                     # Notify @here of the starting show and include the embed which lists the end time
                     await self.bot.general_channel.send(
-                        content=f"@here **{spoiler_mode.title}** starting soon. Head to {bot.njpw_spoiler_channel.mention} for spoiler chat.",
+                        content=f"@here **{spoiler_mode.title}** starting soon. Head to {self.bot.njpw_spoiler_channel.mention} for spoiler chat.",
                         embed=utils.embeds.spoiler_mode_embed(spoiler_mode)
                     )
 
@@ -133,7 +133,7 @@ class Tasks(commands.Cog):
 
                     # Notify @here, in the non-njpw chat channel of the starting show and include the embed which lists the end time
                     await self.bot.non_njpw_channel.send(
-                        content=f"@here **{spoiler_mode.title}** starting soon. Head to {bot.non_njpw_spoiler_channel.mention} for spoiler chat",
+                        content=f"@here **{spoiler_mode.title}** starting soon. Head to {self.bot.non_njpw_spoiler_channel.mention} for spoiler chat",
                         embed=utils.embeds.spoiler_mode_embed(spoiler_mode)
                     )
 

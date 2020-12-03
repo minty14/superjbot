@@ -129,6 +129,10 @@ class Scraper():
                                 "card": date.find("a")["href"]
                             }
 
+                            # The url of their placeholder logo needs to be replaced with the full path
+                            if show_dict["thumb"] == "/wp-content/themes/njpw-en/images/common/noimage_poster.jpg":
+                                show_dict["thumb"] = "https://www.njpw1972.com/wp-content/themes/njpw-en/images/common/noimage_poster.jpg"
+
                             date_time = " ".join(date.find("p", class_="date").get_text().strip().split())
                             date = " ".join(date_time.split(" ")[:4])
                             time = date_time.split("BELL")[1].strip()
