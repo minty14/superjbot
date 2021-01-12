@@ -51,26 +51,34 @@ class Listeners(commands.Cog):
     # Most likely use case will be for temporary or "unofficial" commands that do not use the standard prefix
     @commands.Cog.listener("on_message")
     async def on_message(self, message):
+        # Ignore message if it's a command
         if message.content.startswith("!"):
             return
 
-        if any(x in message.content.lower() for x in ["kenny", "omega", "nota", "gamer", "kennyomegamanx", "kenneth", "merch money thief", "curly blonde-haired guy who knees people really hard", "best bout machine"]):
+        ## Kenny Alarm
+        # Trigger Kenny Alarm if he is mentioned
+        if any(x in message.content.lower() for x in ["kenny", "omega", "nota", "gamer", "kennyomegamanx", "kenneth", "best bout machine"]):
             logging.info(f"Kenny Alarm triggered by \'{message.author}\' in \'{message.channel}\'. Triggering message: \'{message.content}\'")
 
+            # Look up the kenny_alarm document in DB
             alarm_obj = KennyAlarm.objects.first()
 
+            # Calculate time since last breach
             days_between_breaches = (datetime.now() - alarm_obj.last_mention_time).days
             
+            # Show an image in the channel where the breach happened, only if the current time is > 1 day to prevent spamming
             if days_between_breaches > 1:
                 await message.channel.send(
                     content="http://static.puroview.com/super-j-bot/dayssince.jpg"
                 )
 
+            # Update the record days if the ending timespan is the longest ever
             if days_between_breaches > alarm_obj.record_days:
                 alarm_obj.update(
                     record_days=days_between_breaches
                 )
             
+            # Update the kenny_alarm document with the latest trigger details
             alarm_obj.update(
                 last_mention_time=message.created_at,
                 last_mention_user=message.author.display_name,
@@ -78,6 +86,9 @@ class Listeners(commands.Cog):
                 last_mention_link=message.jump_url
             )
 
+
+    # Log all instance of command invocations, succesful and errored
+    
     @commands.Cog.listener("on_command")
     async def on_command(self, ctx):
         logging.info(f"Command [{ctx.command}] invoked with msg [{ctx.message.content}] by {ctx.author}")
