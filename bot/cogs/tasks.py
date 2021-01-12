@@ -33,6 +33,7 @@ class Tasks(commands.Cog):
     # Frequently look for new podcasts episodes in the DB
     @tasks.loop(minutes=5)
     async def new_podcast_watcher(self):
+
         try:
             logging.debug("Running new_podcast_watcher")
 
@@ -53,6 +54,7 @@ class Tasks(commands.Cog):
     # Alert the discord to shows added to the schedule on njpw1972.com
     @tasks.loop(minutes=30)
     async def new_show_watcher(self):
+
         try:
             logging.debug("Running new_show_watcher")
 

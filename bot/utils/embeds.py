@@ -192,7 +192,6 @@ def spoiler_mode_embed(spoiler_mode):
     
     return embed
 
-
 # Build an embed with a wrestler's profile using a provided dict
 # Profile info is pulled from njpw1972.com/profile
 def profile_embed(profile):
