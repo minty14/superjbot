@@ -12,7 +12,8 @@ class Meta(commands.Cog):
 
     @commands.command(name="gamer",
         aliases=["alarm", "kennyalarm", "kenny"],
-        brief="How well are we doing at not mentioning The Gamer?"
+        brief="How well are we doing at not mentioning The Gamer?",
+        hidden=True
         )
     async def gamer(self, ctx):
         embed = utils.embeds.kenny_alarm_embed(KennyAlarm.objects.first())

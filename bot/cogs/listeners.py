@@ -54,7 +54,7 @@ class Listeners(commands.Cog):
         if message.content.startswith("!"):
             return
 
-        if any(x in message.content for x in ["kenny", "omega", "nota", "gamer", "kennyomegamanx", "kenneth"]):
+        if any(x in message.content.lower() for x in ["kenny", "omega", "nota", "gamer", "kennyomegamanx", "kenneth", "merch money thief", "curly blonde-haired guy who knees people really hard", "best bout machine"]):
             logging.info(f"Kenny Alarm triggered by \'{message.author}\' in \'{message.channel}\'. Triggering message: \'{message.content}\'")
 
             alarm_obj = KennyAlarm.objects.first()

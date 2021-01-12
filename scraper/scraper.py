@@ -88,7 +88,7 @@ class Scraper():
             ).date()
 
         # Put the last episode info into a dict and return it
-            all_pods = {
+            episode = {
                 "title": item.title.text,
                 "description": item.description.text,
                 "link": item.link.text,
