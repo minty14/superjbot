@@ -272,3 +272,59 @@ def zone_time(time, zone, fmt):
 
 def zone_times_str(date):
     return f"{zone_time(date, zone_PST, dtfmt)}\n{zone_time(date, zone_EST, dtfmt)}\n{zone_time(date, zone_GMT, dtfmt)}\n{zone_time(date, zone_JST, dtfmt)}"
+
+
+def kenny_alarm_embed(kenny_alarm):
+    embed = Embed(
+        title=":rotating_light: Gamer Alarm Status :rotating_light:"
+    )
+
+    embed.add_field(
+        name="Days Since Last Mention:",
+        value=number_to_emojis((datetime.now()-kenny_alarm.last_mention_time).days),
+        inline=False
+    )
+
+    embed.add_field(
+        name="Guilty user:",
+        value=kenny_alarm.last_mention_user,
+        inline=False
+    )
+
+    embed.add_field(
+        name="Offending message:",
+        value=kenny_alarm.last_mention_message + "\n" + kenny_alarm.last_mention_link,
+        inline=False
+    )
+
+    embed.add_field(
+        name="Record number of days without a gamer mention:",
+        value=kenny_alarm.record_days,
+        inline=False
+    )
+
+    embed.set_thumbnail(
+        url="https://www.njpw1972.com/wp-content/uploads/2017/02/kenny_20180611_2-352x528.png"
+    )
+
+    return embed
+
+def number_to_emojis(number):
+    
+    num_emojis = {
+        "1":":one:",
+        "2":":two:",
+        "3":":three:",
+        "4":":four:",
+        "5":":five:",
+        "6":":six:",
+        "7":":seven:",
+        "8":":eight:",
+        "9":":nine:",
+        "0":":zero:"
+    }
+
+    for k, v in num_emojis.items():
+        number = (str(number)).replace(k, v)
+    
+    return number

@@ -4,7 +4,7 @@ import discord
 from discord.ext import commands
 
 import utils.embeds
-from database.models import(
+from database.models import (
     SpoilerMode, ScheduleShow, ResultShow
 )
 
