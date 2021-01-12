@@ -12,6 +12,7 @@ pymongo = "==3.11.0"
 mongoengine = "==0.20.0"
 dnspython = "==2.0.0"
 pytz = "==2020.4"
+google-api-python-client = "*"
 
 [dev-packages]
 pylint = "*"

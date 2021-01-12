@@ -1,10 +1,11 @@
 import logging
-import discord
+from datetime import datetime, timedelta
 
+import discord
 from discord.ext import commands
 
 import utils.tasks
-from database.models import SpoilerMode
+from database.models import SpoilerMode, KennyAlarm
 from settings.constants import (
     NEW_MEMBER_CHANNEL, RULES_CHANNEL, NEW_POD_CHANNEL, OWNER_ID, NJPW_SPOILER_CHANNEL, NON_NJPW_SPOILER_CHANNEL
 )
@@ -50,8 +51,32 @@ class Listeners(commands.Cog):
     # Most likely use case will be for temporary or "unofficial" commands that do not use the standard prefix
     @commands.Cog.listener("on_message")
     async def on_message(self, message):
-        # No message listeners are used yet
-        pass
+        if message.content.startswith("!"):
+            return
+
+        if any(x in message.content for x in ["kenny", "omega", "nota", "gamer", "kennyomegamanx", "kenneth"]):
+            logging.info(f"Kenny Alarm triggered by \'{message.author}\' in \'{message.channel}\'. Triggering message: \'{message.content}\'")
+
+            alarm_obj = KennyAlarm.objects.first()
+
+            days_between_breaches = (datetime.now() - alarm_obj.last_mention_time).days
+            
+            if days_between_breaches > 1:
+                await message.channel.send(
+                    content="http://static.puroview.com/super-j-bot/dayssince.jpg"
+                )
+
+            if days_between_breaches > alarm_obj.record_days:
+                alarm_obj.update(
+                    record_days=days_between_breaches
+                )
+            
+            alarm_obj.update(
+                last_mention_time=message.created_at,
+                last_mention_user=message.author.display_name,
+                last_mention_message=message.content,
+                last_mention_link=message.jump_url
+            )
 
     @commands.Cog.listener("on_command")
     async def on_command(self, ctx):
