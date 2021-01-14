@@ -40,3 +40,6 @@ NEW_POD_CHANNEL = int(os.environ["NEW_POD_CHANNEL"])
 # IDs of the spoiler channels
 NJPW_SPOILER_CHANNEL = int(os.environ["NJPW_SPOILER_CHANNEL"])
 NON_NJPW_SPOILER_CHANNEL = int(os.environ["NON_NJPW_SPOILER_CHANNEL"])
+
+# ID of the AEW Channel
+AEW_CHANNEL = int(os.environ["AEW_CHANNEL"])

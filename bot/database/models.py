@@ -101,9 +101,10 @@ class Profile(DynamicDocument):
         "indexes": ["name"]
     }
 
-class KennyAlarm(Document):
+class KennyAlarm(DynamicDocument):
     last_mention_time = DateTimeField()
     last_mention_user = StringField()
     last_mention_message = StringField()
     last_mention_link = StringField()
     record_days = IntField()
+    trigger_terms = ListField()

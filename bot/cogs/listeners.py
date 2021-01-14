@@ -14,6 +14,10 @@ class Listeners(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+        # If the list of triggers for the Kenny alarm is updated, the listerner cog can be reloaded to update the list
+        # This is more efficient than pulling the list from the DB, which would have to be done on every message
+        self.kenny_alarm_trigger_terms = KennyAlarm.objects.first().trigger_terms
+
     ###
     # Event Listeners
     # https://discordpy.readthedocs.io/en/latest/ext/commands/api.html?highlight=bot%20listen#discord.ext.commands.Bot.listen
@@ -57,7 +61,7 @@ class Listeners(commands.Cog):
 
         ## Kenny Alarm
         # Trigger Kenny Alarm if he is mentioned
-        if any(x in message.content.lower() for x in ["kenny", "omega", "nota", "gamer", "kennyomegamanx", "kenneth", "best bout machine"]):
+        if any(x in message.content.lower() for x in self.kenny_alarm_trigger_terms) and (message.channel != self.bot.aew_channel):
             logging.info(f"Kenny Alarm triggered by \'{message.author}\' in \'{message.channel}\'. Triggering message: \'{message.content}\'")
 
             # Look up the kenny_alarm document in DB
@@ -85,6 +89,8 @@ class Listeners(commands.Cog):
                 last_mention_message=message.content,
                 last_mention_link=message.jump_url
             )
+
+            await message.add_reaction('🚨')
 
 
     # Log all instance of command invocations, succesful and errored
