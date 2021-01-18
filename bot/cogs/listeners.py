@@ -1,4 +1,5 @@
 import logging
+import re
 from datetime import datetime, timedelta
 
 import discord
@@ -55,13 +56,14 @@ class Listeners(commands.Cog):
     # Most likely use case will be for temporary or "unofficial" commands that do not use the standard prefix
     @commands.Cog.listener("on_message")
     async def on_message(self, message):
-        # Ignore message if it's a command
-        if message.content.startswith("!"):
+        # Ignore message if it's a command or bot messages
+        if message.content.startswith("!") or message.author.bot:
             return
 
         ## Kenny Alarm
         # Trigger Kenny Alarm if he is mentioned
-        if any(x in message.content.lower() for x in self.kenny_alarm_trigger_terms) and (message.channel != self.bot.aew_channel):
+        if any(x in message.content.lower().split() for x in self.kenny_alarm_trigger_terms) and (message.channel != self.bot.aew_channel):
+
             logging.info(f"Kenny Alarm triggered by \'{message.author}\' in \'{message.channel}\'. Triggering message: \'{message.content}\'")
 
             # Look up the kenny_alarm document in DB

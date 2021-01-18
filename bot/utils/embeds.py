@@ -289,12 +289,20 @@ def kenny_alarm_embed(kenny_alarm):
         value=kenny_alarm.last_mention_user,
         inline=False
     )
-
-    embed.add_field(
-        name="Offending message:",
-        value=kenny_alarm.last_mention_message + "\n" + kenny_alarm.last_mention_link,
-        inline=False
-    )
+    
+    if len(kenny_alarm.last_mention_message) > 500:
+        embed.add_field(
+            name="Offending message:",
+            value=kenny_alarm.last_mention_message[:500] + "...\n" + kenny_alarm.last_mention_link,
+            inline=False
+        )
+    
+    else: 
+        embed.add_field(
+            name="Offending message:",
+            value=kenny_alarm.last_mention_message + "\n" + kenny_alarm.last_mention_link,
+            inline=False
+        )
 
     embed.add_field(
         name="Record number of days without a gamer mention:",
