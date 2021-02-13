@@ -104,8 +104,8 @@ class Tasks(commands.Cog):
             starting_shows = ScheduleShow.objects(date__lte=datetime.now() + timedelta(minutes=5))
             if starting_shows:
                 for s in starting_shows:
-                    # Check that spoiler mode hasn't already been triggered for that show
-                    if not SpoilerMode.objects(title=s.name):
+                    # Check that spoiler mode hasn't already been triggered for that show and that the show is live
+                    if not SpoilerMode.objects(title=s.name) and s.live_show:
 
                         # Build spoiler_mode document
                         spoiler_mode = SpoilerMode(

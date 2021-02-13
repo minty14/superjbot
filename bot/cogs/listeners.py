@@ -1,5 +1,4 @@
 import logging
-import re
 from datetime import datetime, timedelta
 
 import discord
@@ -18,7 +17,11 @@ class Listeners(commands.Cog):
         # If the list of triggers for the Kenny alarm is updated, the listerner cog can be reloaded to update the list
         # This is more efficient than pulling the list from the DB, which would have to be done on every message
         self.kenny_alarm_trigger_terms = KennyAlarm.objects.first().trigger_terms
-
+        logging.info(f"Current kenny alarm trigger terms: {self.kenny_alarm_trigger_terms}")
+        # Pull a list of channels where the alarm cannot be triggered
+        self.kenny_alarm_whitelist_channels = KennyAlarm.objects.first().whitelist_channels
+        logging.info(f"Current kenny alarm whitelisted channels: {self.kenny_alarm_whitelist_channels}")
+        
     ###
     # Event Listeners
     # https://discordpy.readthedocs.io/en/latest/ext/commands/api.html?highlight=bot%20listen#discord.ext.commands.Bot.listen
@@ -62,9 +65,9 @@ class Listeners(commands.Cog):
 
         ## Kenny Alarm
         # Trigger Kenny Alarm if he is mentioned
-        if any(x in message.content.lower().split() for x in self.kenny_alarm_trigger_terms) and (message.channel != self.bot.aew_channel):
+        if any(x in message.content.lower() for x in self.kenny_alarm_trigger_terms) and (message.channel.id not in self.kenny_alarm_whitelist_channels):
 
-            logging.info(f"Kenny Alarm triggered by \'{message.author}\' in \'{message.channel}\'. Triggering message: \'{message.content}\'")
+            logging.info(f"Kenny Alarm triggered by \'{message.author}\' in \'{message.channel}\' ({message.channel.id}). Triggering message: \'{message.content}\'")
 
             # Look up the kenny_alarm document in DB
             alarm_obj = KennyAlarm.objects.first()
@@ -73,7 +76,7 @@ class Listeners(commands.Cog):
             days_between_breaches = (datetime.now() - alarm_obj.last_mention_time).days
             
             # Show an image in the channel where the breach happened, only if the current time is > 1 day to prevent spamming
-            if days_between_breaches > 1:
+            if days_between_breaches > 0:
                 await message.channel.send(
                     content="http://static.puroview.com/super-j-bot/dayssince.jpg"
                 )

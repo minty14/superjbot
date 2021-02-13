@@ -27,6 +27,7 @@ class PodcastInfo(Document):
     img_url = URLField()
     url = URLField()
     updated_at = DateTimeField()
+    added_at = DateTimeField(default=datetime.datetime.now)
 
 class PodcastEpisode(Document):
     title = StringField(required=True, unique=True)
@@ -51,8 +52,11 @@ class ScheduleShow(Document):
     venue = StringField()
     thumb = StringField()
     card = URLField()
-    spoiler_hours = IntField(default=12)
+    spoiler_hours = IntField(default=14)
     updated_at = DateTimeField()
+    added_at = DateTimeField(default=datetime.datetime.now)
+    live_show = BooleanField(default=True)
+
     meta = {
         "indexes": ["name", "date"],
         "ordering": ["date"]
@@ -62,6 +66,8 @@ class NonNJPWShow(Document):
     name = StringField(required=True, unique_with="date")
     date = DateTimeField(required=True, unique_with="name")
     spoiler_hours = IntField(default=12)
+    added_at = DateTimeField(default=datetime.datetime.now)
+
     meta = {
         "indexes": ["name", "date"],
         "ordering": ["date"]
@@ -75,6 +81,7 @@ class ResultShow(Document):
     thumb = StringField()
     card = URLField()
     updated_at = DateTimeField()
+    added_at = DateTimeField(default=datetime.datetime.now)
 
     meta = {
         "indexes": ["name"],
@@ -93,3 +100,11 @@ class Profile(DynamicDocument):
     meta = {
         "indexes": ["name"]
     }
+
+class KennyAlarm(DynamicDocument):
+    last_mention_time = DateTimeField()
+    last_mention_user = StringField()
+    last_mention_message = StringField()
+    last_mention_link = StringField()
+    record_days = IntField()
+    trigger_terms = ListField()

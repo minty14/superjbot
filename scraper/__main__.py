@@ -125,15 +125,14 @@ async def update_shows():
             except Exception as e:
                 logging.error(e)
 
-        # Scrape the shows listed on njpw1972.com/schedule
-        result_shows = scraper.shows("result")
-
         # Find ScheduleShow objects that are now in the past and remove them
         old_shows = ScheduleShow.objects(date__lte=datetime.datetime.now)
         for s in old_shows:
             logging.info("Removing past show from schedule_show collection: " + s.name + " (" + str(s.date.date()) + ")")
             s.delete()
 
+        # Scrape the shows listed on njpw1972.com/result
+        result_shows = scraper.shows("result")
         
         for s in result_shows:
             try:
@@ -188,7 +187,7 @@ async def update_profiles():
             logging.error(e)
 
         # Sleep for twelve hours
-        await asyncio.sleep(43200)
+        await asyncio.sleep(4200)
 
 # Add the scraper functions to the main event loop
 async def main():

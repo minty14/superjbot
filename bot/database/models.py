@@ -56,6 +56,7 @@ class ScheduleShow(Document):
     spoiler_hours = IntField(default=14)
     updated_at = DateTimeField()
     added_at = DateTimeField(default=datetime.datetime.now)
+    live_show = BooleanField(default=True)
 
     meta = {
         "indexes": ["name", "date"],
