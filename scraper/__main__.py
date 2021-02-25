@@ -7,9 +7,7 @@ import asyncio
 import datetime
 import logging
 import os
-import pytz
 from mongoengine import connect, errors
-
 
 from scraper import Scraper
 from database.models import (NonNJPWShow, PodcastEpisode, PodcastInfo, Profile,
@@ -57,11 +55,11 @@ async def update_pod_info():
             # If any changes are actually made, timestamp and log
             if update.modified_count > 0:
                 PodcastInfo.objects(title=pod_info['title']).update(updated_at=datetime.datetime.now)
-                logging.info("Podcast Info Updated")
+                logging.info("Podcast info updated")
         
         # Catch exceptions during the scraper and DB update
         except Exception as e:
-            logging.error(e)
+            logging.error("Unable to update pod info: " + str(e))
 
         # Sleep for one day
         await asyncio.sleep(86400)
@@ -75,24 +73,24 @@ async def update_pod_episode():
             last_pod = scraper.pod_episode()
 
             # Check if the latest episode is already in the DB
-            if PodcastEpisode.objects(link=last_pod["link"]):
+            if PodcastEpisode.objects(link=last_pod['link']):
                 
                 # If the episode already exists, update to reflect any changes to the data
-                update = PodcastEpisode.objects(link=last_pod["link"]).update(**last_pod, full_result=True)
+                update = PodcastEpisode.objects(link=last_pod['link']).update(**last_pod, full_result=True)
                 
                 # If any changes are actually made, timestamp and log
                 if update.modified_count > 0:
-                    PodcastEpisode.objects(name=last_pod["name"], date=last_pod["date"]).update(updated_at=datetime.datetime.now)
-                    logging.info("Podcast Episode Updated: " + last_pod["name"])
+                    PodcastEpisode.objects(name=last_pod['name'], date=last_pod['date']).update(updated_at=datetime.datetime.now)
+                    logging.info(f"Podcast Episode Updated: {last_pod['name']}")
             
             else:
                 # If episode is not already in DB, add it
                 episode = PodcastEpisode(**last_pod).save()
-                logging.info("New Podcast Episode Added: " + episode.title)
+                logging.info(f"New Podcast Episode Added: {episode.title}")
 
         # Catch exceptions during the scraper and DB update
         except Exception as e:
-            logging.error(e)
+            logging.error("Unable to update pod episode: " + str(e))
         
         # Sleep for one minute
         await asyncio.sleep(60)
@@ -145,7 +143,7 @@ async def update_shows():
                     # If any changes are actually made, timestamp and log
                     if update.modified_count > 0:
                         ResultShow.objects(name=s['name'], date=s['date']).update(updated_at=datetime.datetime.now)
-                        logging.info("Show updated: " + s['name'])
+                        logging.info(f"Show updated: {s['name']}")
                 
                 else:
                     # If episode is not already in DB, add it
@@ -162,32 +160,37 @@ async def update_shows():
 # Info pulled: title, description, link, published, duration, file
 async def update_profiles():
     while True:
-        try:
             # Scrape the profiles listed on njpw1972.com/profiles
             profiles = scraper.profiles()
 
             for p in profiles:
-                # For each profile in the scraped date, check if it already exists in the DB
-                if Profile.objects(name=p["name"]):
+                try:
+                    # For each profile in the scraped data, check if it already exists in the DB
+                    if Profile.objects(name=p["name"]):
 
-                    # If the profile already exists, update to reflect any changes to the data
-                    update = Profile.objects(name=p["name"]).update(**p, full_result=True)
-                    
-                    # If any changes are actually made, timestamp and log
-                    if update.modified_count > 0:
-                        Profile.objects(name=p["name"]).update(updated_at=datetime.datetime.now, full_result=True)
-                        logging.info("Profile Updated: " + p["name"])
-                else:
-                    # If profile is not already in DB, add it
-                    profile = Profile(**p).save()
-                    logging.info("New Profile Added: " + profile.name)
-        
-        # Catch exceptions during the scraper and DB update
-        except Exception as e:
-            logging.error(e)
+                        # If the profile already exists, update to reflect any changes to the data
+                        update = Profile.objects(name=p["name"]).update(**p, full_result=True)
+                        
+                        # If any changes are actually made, timestamp and log
+                        if update.modified_count > 0:
+                            Profile.objects(name=p["name"]).update(updated_at=datetime.datetime.now, full_result=True)
+                            logging.info(f"Profile updated: {p["name"]}")
+                    else:
+                        # If profile is not already in DB, add it
+                        profile = Profile(**p).save()
+                        logging.info(f"New profile added: {profile.name}")
+               
+                except Exception as e:
+                    logging.error(f"Error adding updating profile {p.name}: " + str(e))
+                
+            # Mark removed profiles as such - they will be deleted by the bot after notifying @here
+            for p in Profile.objects.all():
+                if not [x for x in profiles if x['name'] == p.name]:
+                    p.update(removed=True)
+                    logging.info(f"Profile no longer exists: {p.name}")
 
-        # Sleep for twelve hours
-        await asyncio.sleep(4200)
+            # Sleep for 45 minutes
+            await asyncio.sleep(2700)
 
 # Add the scraper functions to the main event loop
 async def main():
