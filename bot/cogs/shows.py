@@ -1,3 +1,9 @@
+"""
+Cog for show related commands. 
+
+These commands pull and display info related to previous and upcoming shows
+"""
+
 from datetime import datetime, timedelta
 
 import discord

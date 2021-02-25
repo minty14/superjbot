@@ -1,3 +1,9 @@
+"""
+Cog for discord meta commands
+
+Commands here relate to the server itself and the community
+"""
+
 import discord
 from discord.ext import commands
 

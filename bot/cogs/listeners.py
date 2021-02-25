@@ -1,3 +1,9 @@
+"""
+Cog for listeners
+
+Behaviours triggered by certain discord events are defined here
+"""
+
 import logging
 from datetime import datetime, timedelta
 

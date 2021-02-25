@@ -1,3 +1,9 @@
+"""
+Cog for admin-only commands. 
+
+All admin commands are subject to the is_admin check. Includes commands for controlling the cogs themselves.
+"""
+
 import os
 import logging
 from datetime import datetime, timedelta

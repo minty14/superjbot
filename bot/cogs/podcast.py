@@ -1,3 +1,9 @@
+"""
+Cog for podcast related commands
+
+Commands in this cog fetch and display information related to the Super J-Cast podcast
+"""
+
 from discord.ext import commands
 import discord
 
@@ -27,7 +33,7 @@ class Podcast(commands.Cog):
         """
         )
     async def pod_info(self, ctx):
-        # build and send the reply
+        # Build and send the reply
         pod_info = PodcastInfo.objects.first()
         last_pod = PodcastEpisode.objects.first()
         embed = utils.embeds.pod_info_embed(pod_info, last_pod)
@@ -45,7 +51,7 @@ class Podcast(commands.Cog):
         \tThe episode's duration."""
         )
     async def pod_episode_embed(self, ctx):
-        # build and send the reply
+        # Build and send the reply
         last_pod = PodcastEpisode.objects.first()
         embed = utils.embeds.pod_episode_embed(last_pod)
         await ctx.send(embed=embed)

@@ -1,3 +1,9 @@
+"""
+Cog for profile commands. 
+
+These commands pull and display wrestler profiles from the DB
+"""
+
 from discord.ext import commands
 import discord
 

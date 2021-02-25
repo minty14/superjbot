@@ -1,7 +1,12 @@
+"""
+Cog containing background loop tasks
+
+Tasks are started once the cog is loaded and can be restarted by reloading the cog
+"""
+
 import logging
 from datetime import datetime, timedelta
 
-import discord
 from discord.ext import commands, tasks
 
 import utils.embeds

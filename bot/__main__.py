@@ -1,6 +1,11 @@
+"""
+Bot setup
+
+Configuration of logging, DB connection and cog loading is done here.
+"""
+
 # external imports
 import os
-import asyncio
 import logging
 from mongoengine import connect
 
@@ -56,6 +61,7 @@ async def on_ready():
     for filename in os.listdir("./bot/cogs"):
         if filename.endswith(".py") and filename != "__init__.py":
             bot.load_extension(f"cogs.{filename[:-3]}")
+
             logging.info(f"Loaded Cog: {filename[:-3]}")
     
     # Store guild, channel and user IDs in bot attributes

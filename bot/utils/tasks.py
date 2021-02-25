@@ -1,3 +1,9 @@
+"""
+Generic tasks which need to be run ad-hoc
+
+Includes tasks which are run once, ie at login, or on demand rather than on loops
+"""
+
 import logging
 
 from settings.constants import (
