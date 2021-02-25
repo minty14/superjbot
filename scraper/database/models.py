@@ -46,7 +46,8 @@ class PodcastEpisode(Document):
     
 class ScheduleShow(Document):
     name = StringField(required=True, unique_with="date")
-    date = DateTimeField(required=True, unique_with="name")
+    time = DateTimeField(required=True)
+    date = DateField(unique_with="name")
     new = BooleanField(default=True)
     city = StringField()
     venue = StringField()
@@ -64,7 +65,8 @@ class ScheduleShow(Document):
 
 class NonNJPWShow(Document):
     name = StringField(required=True, unique_with="date")
-    date = DateTimeField(required=True, unique_with="name")
+    time = DateTimeField(required=True)
+    date = DateField(unique_with="name")
     spoiler_hours = IntField(default=12)
     added_at = DateTimeField(default=datetime.datetime.now)
 
@@ -75,7 +77,8 @@ class NonNJPWShow(Document):
 
 class ResultShow(Document):
     name = StringField(required=True, unique_with="date")
-    date = DateTimeField(required=True, unique_with="name")
+    time = DateTimeField(required=True)
+    date = DateField(unique_with="name")
     city = StringField()
     venue = StringField()
     thumb = StringField()

@@ -4,9 +4,9 @@ A web scraper Class instantiated once the bot starts running and is logged in
 Provides class methods to scrape information from various sources to then be stored in the DB
 """
 from bs4 import BeautifulSoup
+from datetime import datetime
 import logging
 import requests
-import datetime
 import pytz
 
 class Scraper():
@@ -53,7 +53,7 @@ class Scraper():
         item = soup.find("item")
 
         # Remove some of the formatting around the date and convert to date object
-        published = datetime.datetime.strptime(
+        published = datetime.strptime(
             " ".join(item.pubDate.text.split(" ")[0:4]), 
             "%a, %d %b %Y"
             ).date()
@@ -82,7 +82,7 @@ class Scraper():
         all_pods = []
 
         for item in items:
-            published = datetime.datetime.strptime(
+            published = datetime.strptime(
             " ".join(item.pubDate.text.split(" ")[0:4]), 
             "%a, %d %b %Y"
             ).date()
@@ -116,9 +116,11 @@ class Scraper():
             all_events = soup.find_all("div", class_="event")
 
             for event in all_events:
-                
+                    # Each "event" can actually be one show, or a whole tour, with multiple dates
+                    # event_name can be consistent across multiple dates, so is set here, outside of the next for loop
                     event_name = event.find("h3").get_text().strip()
                     dates = event.find_all("li")
+
                     for date in dates:
                         try:
                             show_dict = {
@@ -130,23 +132,28 @@ class Scraper():
                             }
 
                             # The url of their placeholder logo needs to be replaced with the full path
-                            if show_dict["thumb"] == "/wp-content/themes/njpw-en/images/common/noimage_poster.jpg":
-                                show_dict["thumb"] = "https://www.njpw1972.com/wp-content/themes/njpw-en/images/common/noimage_poster.jpg"
+                            if show_dict['thumb'] == "/wp-content/themes/njpw-en/images/common/noimage_poster.jpg":
+                                show_dict['thumb'] = "https://www.njpw1972.com/wp-content/themes/njpw-en/images/common/noimage_poster.jpg"
 
-
+                            #Scrape the scheduled time of the show and split our the date and time
                             date_time = " ".join(date.find("p", class_="date").get_text().strip().split())
                             date = " ".join(date_time.split(" ")[:4])
                             time = date_time.split("BELL")[1].strip()
+
+                            # The 'date' dict values here are a duplicate of 'time'. It is added to the DB as a DateField
+                            # 'date' is then used to update show DB entries without duplicating when the show time has changed
                             if "EST" in time:
+                                # If the timezone is EST (eg Strong), set the correct timezone and localise the time to UTC
                                 tz = pytz.timezone("US/Eastern")
-                                time = time[:7]
-                                date_time = date + " " + time
-                                show_dict["date"] = tz.localize(datetime.datetime.strptime(date_time, "%a. %B. %d. %Y %I:%M%p"))
+                                time = time[:7] # Removes the timezone from the time text contents
+                                show_dict['time'] = tz.localize(datetime.strptime(date + " " + time, "%a. %B. %d. %Y %I:%M%p"))
+                                show_dict['date'] = show_dict['time']
                             else:
+                                # Default timezone is JST so start times are localised to UTC based on that
                                 tz = pytz.timezone("Asia/Tokyo")
-                                date_time = date + " " + time
-                                show_dict["date"] = tz.localize(datetime.datetime.strptime(date_time, "%a. %B. %d. %Y %H:%M"))
-                        
+                                show_dict['time'] = tz.localize(datetime.strptime(date + " " + time, "%a. %B. %d. %Y %H:%M"))
+                                show_dict['date'] = show_dict['time']
+                            
                             logging.debug("show_dict: " + str(show_dict))
 
                             shows.append(show_dict)

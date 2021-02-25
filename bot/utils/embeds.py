@@ -107,7 +107,7 @@ def schedule_shows_embed(shows, number_of_shows):
 
         embed.add_field(
             name="Time",
-            value=zone_times_str(show.date),
+            value=zone_times_str(show.time),
             inline=False
         )
                 
@@ -123,7 +123,7 @@ def schedule_shows_embed(shows, number_of_shows):
 
             embed.add_field(
                 name=show.name,
-                value=f"Card: {show.card}\nCity: {show.city}\nVenue: {show.venue}\n" + zone_times_str(show.date),
+                value=f"Card: {show.card}\nCity: {show.city}\nVenue: {show.venue}\n" + zone_times_str(show.time),
                 inline=False
             )
     
@@ -146,7 +146,7 @@ def result_shows_embed(shows, number_of_shows):
 
         embed.add_field(
             name=show["name"],
-            value=f"{show.date.strftime(datefmt)}\nCity: {show.city}\nVenue: {show.venue}",
+            value=f"{show.time.strftime(datefmt)}\nCity: {show.city}\nVenue: {show.venue}",
             inline=False
         )
     
@@ -163,7 +163,7 @@ def new_shows_embed(shows):
 
         embed.add_field(
             name=show["name"],
-            value=f"City: {show.city}\nVenue: {show.venue}\n" + zone_times_str(show.date),
+            value=f"City: {show.city}\nVenue: {show.venue}\n" + zone_times_str(show.time),
             inline=False
         )
 
