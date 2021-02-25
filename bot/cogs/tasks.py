@@ -101,7 +101,7 @@ class Tasks(commands.Cog):
             logging.debug("Running spoiler_mode_watcher")
 
             # DB query to return njpw shows which start in the next 5 minutes and continue if any exist
-            starting_shows = ScheduleShow.objects(date__lte=datetime.now() + timedelta(minutes=5))
+            starting_shows = ScheduleShow.objects(time__lte=datetime.now() + timedelta(minutes=5))
             if starting_shows:
                 for s in starting_shows:
                     # Check that spoiler mode hasn't already been triggered for that show and that the show is live
@@ -111,7 +111,7 @@ class Tasks(commands.Cog):
                         spoiler_mode = SpoilerMode(
                             mode = "njpw",
                             title=s.name,
-                            ends_at=s.date + timedelta(hours=s.spoiler_hours),
+                            ends_at=s.time + timedelta(hours=s.spoiler_hours),
                             thumb=s.thumb
                         )
 
@@ -129,7 +129,7 @@ class Tasks(commands.Cog):
                         logging.info(f"NJPW #spoiler-zone time started for {spoiler_mode.title}, ends in {s.spoiler_hours}")
 
             # DB query to return non-njpw shows which start in the next 5 minutes and continue if any exist
-            non_njpw_shows = NonNjpwShow.objects(date__lte=datetime.now() + timedelta(minutes=5))
+            non_njpw_shows = NonNjpwShow.objects(time__lte=datetime.now() + timedelta(minutes=5))
             if non_njpw_shows:
                 for s in non_njpw_shows:
                     # Check that spoiler mode hasn't already been triggered for that show
@@ -139,7 +139,7 @@ class Tasks(commands.Cog):
                         spoiler_mode = SpoilerMode(
                             mode = "non_njpw",
                             title=s.name,
-                            ends_at=s.date + timedelta(hours=s.spoiler_hours)
+                            ends_at=s.time + timedelta(hours=s.spoiler_hours)
                         )
 
                         # Save the document to the DB
@@ -164,7 +164,7 @@ class Tasks(commands.Cog):
                         if SpoilerMode.objects(mode=s.mode).count() < 2:
                             await self.bot.general_channel.send(
                                 content=f"@here **{s.title}** _#spoiler-zone_ time has ended. Spoil away.\n\nNext show:",
-                                embed=utils.embeds.schedule_shows_embed(ScheduleShow.objects(date__gt=datetime.now())[:1], 1)
+                                embed=utils.embeds.schedule_shows_embed(ScheduleShow.objects(time__gt=datetime.now())[:1], 1)
                             )
                         else:
                             await self.bot.general_channel.send(

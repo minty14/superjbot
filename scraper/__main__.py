@@ -11,7 +11,7 @@ import pytz
 from mongoengine import connect, errors
 
 
-import scraper
+from scraper import Scraper
 from database.models import (NonNJPWShow, PodcastEpisode, PodcastInfo, Profile,
                              ResultShow, ScheduleShow)
 
@@ -40,8 +40,8 @@ logging.basicConfig(
 # http://docs.mongoengine.org/apireference.html?highlight=connect#mongoengine.connect
 connect(host=os.environ['DBURL'])
 
-# Instantiate the Scraper class
-scraper = scraper.Scraper()
+# Instantiate the Scraper
+scraper = Scraper()
 
 # Store general podcast data from the Podcast's RedCircle Page
 # Info pulled: title, description, img_url, url
@@ -107,28 +107,28 @@ async def update_shows():
         for s in schedule_shows:
             try:
                 # For each show in the scraped date, check if it already exists in the DB
-                if ScheduleShow.objects(name=s["name"], date=s["date"]):
+                if ScheduleShow.objects(name=s['name'], date=s['date']):
 
                     # If the episode already exists, update to reflect any changes to the data
-                    update = ScheduleShow.objects(name=s["name"], date=s["date"]).update(**s, full_result=True)
+                    update = ScheduleShow.objects(name=s['name'], date=s['date']).update(**s, full_result=True)
                     
                     # If any changes are actually made, timestamp and log
                     if update.modified_count > 0:
-                        ScheduleShow.objects(name=s["name"], date=s["date"]).update(updated_at=datetime.datetime.now)
-                        logging.info("Show Updated: " + s["name"])
+                        ScheduleShow.objects(name=s['name'], date=s['date']).update(updated_at=datetime.datetime.now)
+                        logging.info(f"Show updated: {s['name']} ({str(s['date'])})")
                 
                 else:
                     # If episode is not already in DB, add it
                     show = ScheduleShow(**s).save()
-                    logging.info("New Scheduled Show Added: " + show.name + " (" + str(show.date.date()) + ")")
+                    logging.info(f"New scheduled show added: {show.name} ({str(show.date)})")
                 
             except Exception as e:
-                logging.error(e)
+                logging.error(f"Error adding {s['name']} ({str(s['date'])}) to DB: " + str(e))
 
         # Find ScheduleShow objects that are now in the past and remove them
-        old_shows = ScheduleShow.objects(date__lte=datetime.datetime.now)
+        old_shows = ScheduleShow.objects(time__lte=datetime.datetime.now)
         for s in old_shows:
-            logging.info("Removing past show from schedule_show collection: " + s.name + " (" + str(s.date.date()) + ")")
+            logging.info(f"Removing past show from schedule_show collection: {s.name} ({str(s['date'])})")
             s.delete()
 
         # Scrape the shows listed on njpw1972.com/result
@@ -137,23 +137,23 @@ async def update_shows():
         for s in result_shows:
             try:
                 # For each show in the scraped date, check if it already exists in the DB
-                if ResultShow.objects(name=s["name"], date=s["date"]):
+                if ResultShow.objects(name=s['name'], date=s['date']):
 
                     # If the episode already exists, update to reflect any changes to the data
-                    update = ResultShow.objects(name=s["name"], date=s["date"]).update(**s, full_result=True)
+                    update = ResultShow.objects(name=s['name'], date=s['date']).update(**s, full_result=True)
                     
                     # If any changes are actually made, timestamp and log
                     if update.modified_count > 0:
-                        ResultShow.objects(name=s["name"], date=s["date"]).update(updated_at=datetime.datetime.now)
-                        logging.info("Show Updated: " + s["name"])
+                        ResultShow.objects(name=s['name'], date=s['date']).update(updated_at=datetime.datetime.now)
+                        logging.info("Show updated: " + s['name'])
                 
                 else:
                     # If episode is not already in DB, add it
                     show = ResultShow(**s).save()
-                    logging.info("New Result Show Added: " + show.name + " (" + str(show.date.date()) + ")")
+                    logging.info(f"New result show added: {show.name} ({str(show.date)})")
                 
             except Exception as e:
-                logging.error(f"Error adding {s['name']}, {s['date'].date()} to DB: " + str(e))
+                logging.error(f"Error adding {s['name']} ({str(s['date'])}) to DB: " + str(e))
     
         # Sleep for one hour
         await asyncio.sleep(3600)
