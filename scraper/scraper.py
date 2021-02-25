@@ -9,6 +9,8 @@ import logging
 import requests
 import pytz
 
+from database.models import ScheduleShow
+
 class Scraper():
     def __init__(self):
         # Store some commonly used URLs
@@ -163,6 +165,53 @@ class Scraper():
 
         return shows
 
+    def broadcasts(self):
+        logging.info("Updating broadcasted shows")
+
+        def update_live_broadcasts(broadcasts, year):
+            for broadcast in broadcasts:
+                try:
+                    # Pull the date and time from the first 2 columns
+                    show_details = [s.text for s in (broadcast.find_all('td'))][:2]
+                    # Create a datetime object for the show by building a string and formatting it (Japanese time)
+                    time = pytz.timezone("Asia/Tokyo").localize(datetime.strptime(show_details[1][:5] + " " + show_details[0].split("(")[0] + " " + year, "%H:%M %m/%d %Y"))
+                    # Find a show with a matching datetime
+                    # If live_show is already True, we don't need to update it, so filter those out
+                    show = ScheduleShow.objects(time=time, live_show=False).first()
+
+                    # If there's a match, update the DB
+                    if show:
+                        show.update(live_show=True)
+                        logging.info(f"New broadcast found: {show.name} ({show.date})")
+                
+                except Exception as e:
+                    logging.error("Error trying to update broadcast shows: " + str(e))
+        
+        try:
+            # Custom headers are needed otherwise njpwworld gives an unsupported browser error
+            headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36'}
+            session = requests.get("https://njpwworld.com/feature/schedule", headers=headers)
+            soup = BeautifulSoup(session.text, "html.parser")
+
+            # Tab1 contains the schedule, tab2 is past events
+            schedule = soup.find("div", id="tab1")
+            # Each month's shows is listed in a seperate table
+            months = schedule.find_all("table")
+            # The year isn't in individual dates, so pull it from the table headers
+            years = soup.find_all("h1", class_="ttl-schedule menu-ja")
+
+            # In the source text, both the english and japanese calendars are there - even indices are japanese tables, odds are english
+            # Ignore tr[0] as it's the table header. The year is spliced from the text header (ie "2021年2月配信予定一覧")
+            
+            # Update current month's shows
+            update_live_broadcasts(months[0].find_all('tr')[1:], years[0].text[:4])
+            # Update next month's shows
+            update_live_broadcasts(months[2].find_all('tr')[1:], years[1].text[:4])
+        
+        except Exception as e:
+            logging.error("Error trying to scrape broadcast shows: " + str(e))
+
+
     # TODO: create function to pull the results from past show(s)
     def results(self):
         pass
@@ -237,3 +286,7 @@ class Scraper():
             logging.debug("profile: " + str(profile))
         
         return profiles
+
+if __name__ == "__main__":
+    scraper = Scraper()
+    scraper.broadcasts()

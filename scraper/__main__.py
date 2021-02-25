@@ -152,7 +152,10 @@ async def update_shows():
                 
             except Exception as e:
                 logging.error(f"Error adding {s['name']} ({str(s['date'])}) to DB: " + str(e))
-    
+
+        # Update shows which are live on njpwworld.com
+        scraper.broadcasts()
+
         # Sleep for one hour
         await asyncio.sleep(3600)
 
@@ -174,7 +177,7 @@ async def update_profiles():
                         # If any changes are actually made, timestamp and log
                         if update.modified_count > 0:
                             Profile.objects(name=p["name"]).update(updated_at=datetime.datetime.now, full_result=True)
-                            logging.info(f"Profile updated: {p["name"]}")
+                            logging.info(f"Profile updated: {p['name']}")
                     else:
                         # If profile is not already in DB, add it
                         profile = Profile(**p).save()
