@@ -21,6 +21,8 @@ class Tasks(commands.Cog):
         self.new_show_watcher.start()
         logging.info("Starting new_profile_watcher")
         self.new_profile_watcher.start()
+        logging.info("Starting removed_profile_watcher")
+        self.removed_profile_watcher.start()
         logging.info("Starting spoiler_mode_watcher")
         self.spoiler_mode_watcher.start()
 
@@ -76,7 +78,7 @@ class Tasks(commands.Cog):
             logging.error("Error encountered while running new_show_watcher: " + str(e))
 
     # Alert the discord to wrestler profiles added to on njpw1972.com
-    @tasks.loop(hours=6)
+    @tasks.loop(minutes=30)
     async def new_profile_watcher(self):
         try:
             logging.debug("Running new_profile_watcher")
@@ -87,11 +89,31 @@ class Tasks(commands.Cog):
             if new_profiles:
                 await self.bot.general_channel.send("New Profile(s) Added: ")
                 for p in new_profiles:
-                    logging.info("New profile found: " + p.name)
+                    logging.info(f"New profile found: {p.name}")
                     await self.bot.general_channel.send(embed=utils.embeds.profile_embed(p))
                 new_profiles.update(new=False)
+
         except Exception as e:
             logging.error("Error encountered while running new_profile_watcher: " + str(e))
+
+    # Alert the discord to wrestler profiles removed, and delete them from the DB
+    @tasks.loop(minutes=31)
+    async def removed_profile_watcher(self):
+        try:
+            logging.debug("Running removed_profile_watcher")
+
+            # DB query to return podcast episodes tagged as removed
+            removed_profiles = Profile.objects(removed=True)
+
+            if removed_profiles:
+                await self.bot.general_channel.send("Profile(s) Removed: ")
+                for p in removed_profiles:
+                    logging.info(f"Removed profile found: {p.name}")
+                    await self.bot.general_channel.send(embed=utils.embeds.profile_embed(p))
+                removed_profiles.delete()
+
+        except Exception as e:
+            logging.error("Error encountered while running removed_profile_watcher: " + str(e))
 
     # Check for shows starting soon and set spoiler mode
     # Also check for spoiler modes which have ended

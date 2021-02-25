@@ -99,6 +99,7 @@ class Profile(DynamicDocument):
     new = BooleanField(default=True)
     updated_at = DateTimeField()
     added_at = DateTimeField(default=datetime.datetime.now)
+    removed = BooleanField(default=False)
     attributes = DictField()
 
     meta = {
