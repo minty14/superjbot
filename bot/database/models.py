@@ -61,7 +61,7 @@ class ScheduleShow(Document):
 
     meta = {
         "indexes": ["name", "date"],
-        "ordering": ["date"]
+        "ordering": ["time"]
     }
 
 class NonNjpwShow(Document):
@@ -72,8 +72,8 @@ class NonNjpwShow(Document):
     added_at = DateTimeField(default=datetime.datetime.now)
 
     meta = {
-        "indexes": ["name", "date"],
-        "ordering": ["date"]
+        "indexes": ["name", "time"],
+        "ordering": ["time"]
     }
 
 class ResultShow(Document):
@@ -89,7 +89,7 @@ class ResultShow(Document):
 
     meta = {
         "indexes": ["name"],
-        "ordering": ["-date"]
+        "ordering": ["-time"]
     }
 
 class Profile(DynamicDocument):

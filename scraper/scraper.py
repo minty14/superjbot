@@ -286,7 +286,3 @@ class Scraper():
             logging.debug("profile: " + str(profile))
         
         return profiles
-
-if __name__ == "__main__":
-    scraper = Scraper()
-    scraper.broadcasts()
