@@ -205,8 +205,10 @@ class Scraper():
             
             # Update current month's shows
             update_live_broadcasts(months[0].find_all('tr')[1:], years[0].text[:4])
-            # Update next month's shows
-            update_live_broadcasts(months[2].find_all('tr')[1:], years[1].text[:4])
+            
+            # Update next month's shows if the schedule exists
+            if len(months) > 2:
+                update_live_broadcasts(months[2].find_all('tr')[1:], years[1].text[:4])
         
         except Exception as e:
             logging.error("Error trying to scrape broadcast shows: " + str(e))
