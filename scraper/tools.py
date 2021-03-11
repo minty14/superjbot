@@ -3,13 +3,12 @@ A set of tools for manual interaction with the scraper
 """
 import logging
 
+from scraper import Scraper
 from database.models import (
     PodcastEpisode
 )
 
-import scraper
-
-scraper = scraper.Scraper()
+scraper = Scraper()
 
 # The below function exists should the podcast_episode collection need to be dropped and rebuilt
 def update_all_pods():
