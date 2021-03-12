@@ -7,9 +7,10 @@ import asyncio
 import datetime
 import logging
 import os
+from warnings import showwarning
 from mongoengine import connect, errors
 
-from scraper import Scraper
+from scraper import PodScraper, ShowScraper, ProfileScraper
 from database.models import (NonNJPWShow, PodcastEpisode, PodcastInfo, Profile,
                              ResultShow, ScheduleShow)
 
@@ -38,60 +39,37 @@ logging.basicConfig(
 # http://docs.mongoengine.org/apireference.html?highlight=connect#mongoengine.connect
 connect(host=os.environ['DBURL'])
 
-# Instantiate the Scraper
-scraper = Scraper()
+# Instantiate the Scrapers
+pod_scraper = PodScraper()
+show_scraper = ShowScraper()
+profile_scraper = ProfileScraper()
 
 # Store general podcast data from the Podcast's RedCircle Page
 # Info pulled: title, description, img_url, url
 async def update_pod_info():
     while True:
         try:
-            # Scrape the podcast information
-            pod_info = scraper.pod_info()
+            pod_info = pod_scraper.scrape_info()
+            pod_scraper.update_info(pod_info)
+            # Sleep for one day
+            await asyncio.sleep(86400)
 
-            # Attempt to update the existing podcast information with the scraped data            
-            update = PodcastInfo.objects(title=pod_info['title']).update(**pod_info, full_result=True)
-            
-            # If any changes are actually made, timestamp and log
-            if update.modified_count > 0:
-                PodcastInfo.objects(title=pod_info['title']).update(updated_at=datetime.datetime.now)
-                logging.info("Podcast info updated")
-        
-        # Catch exceptions during the scraper and DB update
         except Exception as e:
-            logging.error("Unable to update pod info: " + str(e))
-
-        # Sleep for one day
-        await asyncio.sleep(86400)
+            logging.error("Error running update_pod_info task: " + str(e))
+            await asyncio.sleep(60)
+        
 
 # Store data related to the latest podcast episode
 # Info pulled: title, description, link, published, duration, file
 async def update_pod_episode():
     while True:
         try:
-            # Scrape the last pod episode from the RSS feed
-            last_pod = scraper.pod_episode()
-
-            # Check if the latest episode is already in the DB
-            if PodcastEpisode.objects(link=last_pod['link']):
-                
-                # If the episode already exists, update to reflect any changes to the data
-                update = PodcastEpisode.objects(link=last_pod['link']).update(**last_pod, full_result=True)
-                
-                # If any changes are actually made, timestamp and log
-                if update.modified_count > 0:
-                    PodcastEpisode.objects(name=last_pod['name'], date=last_pod['date']).update(updated_at=datetime.datetime.now)
-                    logging.info(f"Podcast Episode Updated: {last_pod['name']}")
+            latest_episode = pod_scraper.scrape_latest_episode()
+            pod_scraper.update_latest_episode(latest_episode)
             
-            else:
-                # If episode is not already in DB, add it
-                episode = PodcastEpisode(**last_pod).save()
-                logging.info(f"New Podcast Episode Added: {episode.title}")
-
-        # Catch exceptions during the scraper and DB update
         except Exception as e:
-            logging.error("Unable to update pod episode: " + str(e))
-        
+            logging.error("Error running update_pod_episode task: " + str(e))
+
         # Sleep for one minute
         await asyncio.sleep(60)
 
@@ -99,101 +77,44 @@ async def update_pod_episode():
 # Data pulled per show: name, city, venue, thumbnail url, date (in local time)
 async def update_shows():
     while True:
-        # Scrape the shows listed on njpw1972.com/schedule
-        schedule_shows = scraper.shows("schedule")
+        try:
+            # Update schedule shows
+            schedule_shows = show_scraper.scrape_shows("schedule")
+            for show in schedule_shows:
+                show_scraper.update_show(show, "schedule")
 
-        for s in schedule_shows:
-            try:
-                # For each show in the scraped date, check if it already exists in the DB
-                if ScheduleShow.objects(name=s['name'], date=s['date']):
+            # Update result shows
+            result_shows = show_scraper.scrape_shows("result")
+            for show in result_shows:
+                show_scraper.update_show(show, "result")
 
-                    # If the episode already exists, update to reflect any changes to the data
-                    update = ScheduleShow.objects(name=s['name'], date=s['date']).update(**s, full_result=True)
-                    
-                    # If any changes are actually made, timestamp and log
-                    if update.modified_count > 0:
-                        ScheduleShow.objects(name=s['name'], date=s['date']).update(updated_at=datetime.datetime.now)
-                        logging.info(f"Show updated: {s['name']} ({str(s['date'])})")
-                
-                else:
-                    # If episode is not already in DB, add it
-                    show = ScheduleShow(**s).save()
-                    logging.info(f"New scheduled show added: {show.name} ({str(show.date)})")
-                
-            except Exception as e:
-                logging.error(f"Error adding {s['name']} ({str(s['date'])}) to DB: " + str(e))
+            # Update shows which are live on njpwworld.com
+            show_scraper.scrape_broadcasts()
 
-        # Find ScheduleShow objects that are now in the past and remove them
-        old_shows = ScheduleShow.objects(time__lte=datetime.datetime.now)
-        for s in old_shows:
-            logging.info(f"Removing past show from schedule_show collection: {s.name} ({str(s['date'])})")
-            s.delete()
+            # Remove old shows
+            show_scraper.remove_old_shows()
 
-        # Scrape the shows listed on njpw1972.com/result
-        result_shows = scraper.shows("result")
-        
-        for s in result_shows:
-            try:
-                # For each show in the scraped date, check if it already exists in the DB
-                if ResultShow.objects(name=s['name'], date=s['date']):
+            # Sleep for one hour
+            await asyncio.sleep(3600)
 
-                    # If the episode already exists, update to reflect any changes to the data
-                    update = ResultShow.objects(name=s['name'], date=s['date']).update(**s, full_result=True)
-                    
-                    # If any changes are actually made, timestamp and log
-                    if update.modified_count > 0:
-                        ResultShow.objects(name=s['name'], date=s['date']).update(updated_at=datetime.datetime.now)
-                        logging.info(f"Show updated: {s['name']}")
-                
-                else:
-                    # If episode is not already in DB, add it
-                    show = ResultShow(**s).save()
-                    logging.info(f"New result show added: {show.name} ({str(show.date)})")
-                
-            except Exception as e:
-                logging.error(f"Error adding {s['name']} ({str(s['date'])}) to DB: " + str(e))
-
-        # Update shows which are live on njpwworld.com
-        scraper.broadcasts()
-
-        # Sleep for one hour
-        await asyncio.sleep(3600)
+        except Exception as e:
+            logging.error("Error running update_shows task: " + str(e))
+            await asyncio.sleep(60)
 
 # Store data related to the latest podcast episode
 # Info pulled: title, description, link, published, duration, file
 async def update_profiles():
     while True:
-            # Scrape the profiles listed on njpw1972.com/profiles
-            profiles = scraper.profiles()
-
-            for p in profiles:
-                try:
-                    # For each profile in the scraped data, check if it already exists in the DB
-                    if Profile.objects(name=p["name"]):
-
-                        # If the profile already exists, update to reflect any changes to the data
-                        update = Profile.objects(name=p["name"]).update(**p, full_result=True)
-                        
-                        # If any changes are actually made, timestamp and log
-                        if update.modified_count > 0:
-                            Profile.objects(name=p["name"]).update(updated_at=datetime.datetime.now, full_result=True)
-                            logging.info(f"Profile updated: {p['name']}")
-                    else:
-                        # If profile is not already in DB, add it
-                        profile = Profile(**p).save()
-                        logging.info(f"New profile added: {profile.name}")
-               
-                except Exception as e:
-                    logging.error(f"Error adding updating profile {p.name}: " + str(e))
-                
-            # Mark removed profiles as such - they will be deleted by the bot after notifying @here
-            for p in Profile.objects.all():
-                if not [x for x in profiles if x['name'] == p.name]:
-                    p.update(removed=True)
-                    logging.info(f"Profile no longer exists: {p.name}")
-
+        try:
+            profiles = profile_scraper.scrape_profiles()
+            for profile in profiles:
+                profile_scraper.update_profile(profile)
             # Sleep for 45 minutes
             await asyncio.sleep(2700)
+
+        except Exception as e:
+            logging.error("Error running update_profiles task: " + str(e))
+            await asyncio.sleep(60)
 
 # Add the scraper functions to the main event loop
 async def main():

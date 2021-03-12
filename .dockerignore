@@ -2,3 +2,4 @@
 */build/Dockerfile
 LICENSE
 README.md
+*.old.py
