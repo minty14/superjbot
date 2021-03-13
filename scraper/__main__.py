@@ -4,11 +4,9 @@ An automated scraper to pull information from various sources related to New Jap
 Stores data in a mongodb cluster used as a back end for the Super J-Cast Discord bot
 """
 import asyncio
-import datetime
 import logging
 import os
-from warnings import showwarning
-from mongoengine import connect, errors
+from mongoengine import connect
 
 from scraper import PodScraper, ShowScraper, ProfileScraper
 from database.models import (NonNJPWShow, PodcastEpisode, PodcastInfo, Profile,
@@ -23,8 +21,8 @@ c_handler.setLevel(logging.INFO)
 f_handler.setLevel(logging.DEBUG)
 
 # Create formatters and add it to handlers
-c_format = logging.Formatter('%(asctime)s:%(name)s:%(levelname)s#%(message)s', datefmt='%d.%m.%y-%H:%M:%S')
-f_format = logging.Formatter('%(asctime)s:%(name)s:%(levelname)s#%(message)s', datefmt='%d.%m.%y-%H:%M:%S')
+c_format = logging.Formatter('%(asctime)s:%(name)s:%(levelname)s# %(message)s', datefmt='%d.%m.%y-%H:%M:%S')
+f_format = logging.Formatter('%(asctime)s:%(name)s:%(levelname)s# %(message)s', datefmt='%d.%m.%y-%H:%M:%S')
 c_handler.setFormatter(c_format)
 f_handler.setFormatter(f_format)
 
@@ -118,6 +116,7 @@ async def update_profiles():
 
 # Add the scraper functions to the main event loop
 async def main():
+    logging.info("Creating main event loop")
     await asyncio.gather(
         update_pod_info(),
         update_pod_episode(),
@@ -126,4 +125,5 @@ async def main():
     )
 
 # Run the main event loop
+logging.info("Starting main event loop")
 asyncio.run(main())

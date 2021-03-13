@@ -1,5 +1,5 @@
 """
-A web scraper Class instantiated once the bot starts running and is logged in
+Web scraper classes for different types of scraped data
 
 Provides class methods to scrape information from various sources to then be stored in the DB
 """
@@ -15,7 +15,7 @@ class Scraper():
     # Take a url and create a Beautiful soup object
     # Features is usually lxml or xml
     def create_soup(self, url, features):
-        logging.info(f"Creating soup from {url}")
+        logging.debug(f"Creating soup from {url}")
 
         try:
             page = requests.get(url)
@@ -56,7 +56,7 @@ class PodScraper(Scraper):
             logging.error("Unable to scrape pod info: " + str(e))
     
     def update_info(self, pod_info):
-        logging.info("Updating podcast information")
+        logging.info("Querying podcast information")
         
         try:
             # Attempt to update the existing podcast information with the scraped data            
@@ -66,7 +66,7 @@ class PodScraper(Scraper):
             if update.modified_count > 0:
                 PodcastInfo.objects(title=pod_info['title']).update(updated_at=datetime.now)
                 logging.info("Podcast info updated")
-        
+
         except Exception as e:
             logging.error("Unable to update pod info: " + str(e))
 
@@ -104,7 +104,7 @@ class PodScraper(Scraper):
             logging.error("Unable to scrape latest pod episode: " + str(e))
 
     def update_latest_episode(self, last_pod):
-        logging.info("Updating latest podcast episode")
+        logging.info("Querying latest podcast episode")
         
         try:    
             # Check if the latest episode is already in the DB
@@ -161,7 +161,7 @@ class PodScraper(Scraper):
             logging.error("Unable to scrape all pod episodes: " + str(e))
 
     def update_old_episode(self, episode):
-        logging.info(f"Updating podcast episode \"{episode['name']}\"")
+        logging.info(f"Querying podcast episode \"{episode['name']}\"")
 
         try:
             # If the episode is not already in the DB, add it
@@ -229,14 +229,14 @@ class ShowScraper(Scraper):
                         logging.debug("show_dict: " + str(show_dict))
 
                         shows.append(show_dict)
-
-                        return shows
                                         
                     except Exception as e:
                         logging.error(f"Unable to scrape show {event_name}: " + str(e))
 
+        return shows
+
     def update_show(self, show, type):
-        logging.info(f"Updating show {show['name']}")
+        logging.info(f"Querying {type} show {show['name']} ({show['date'].date()})")
         
         try:
             if type == "schedule":
@@ -293,7 +293,7 @@ class ShowScraper(Scraper):
             logging.error("Error trying to scrape broadcast shows: " + str(e))
 
     def update_broadcasts(self, broadcasts, year):
-        logging.info("Updating broadcasted shows")
+        logging.info("Querying broadcasted shows")
 
         for broadcast in broadcasts:
             try:
@@ -407,7 +407,7 @@ class ProfileScraper(Scraper):
         return profiles
 
     def update_profile(self, profile):
-        logging.info(f"Updating profile {profile['name']}")
+        logging.info(f"Querying profile {profile['name']}")
 
         try:
             # For each profile in the scraped data, check if it already exists in the DB
