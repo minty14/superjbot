@@ -128,7 +128,7 @@ class Tasks(commands.Cog):
             logging.debug("Running spoiler_mode_watcher")
 
             # DB query to return njpw shows which start in the next 5 minutes and continue if any exist
-            starting_shows = ScheduleShow.objects(time__lte=datetime.now() + timedelta(minutes=5))
+            starting_shows = ScheduleShow.objects(time__lte=datetime.now() + timedelta(minutes=5), live_show=True)
             if starting_shows:
                 for s in starting_shows:
                     # Check that spoiler mode hasn't already been triggered for that show and that the show is live
