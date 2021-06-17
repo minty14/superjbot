@@ -104,6 +104,11 @@ def schedule_shows_embed(shows, number_of_shows):
                 name="Venue",
                 value=show.venue
             )
+        
+        embed.add_field(
+            name="Broadcast",
+            value="Yes" if show.live_show else "No"
+        )
 
         embed.add_field(
             name="Time",
@@ -121,9 +126,10 @@ def schedule_shows_embed(shows, number_of_shows):
 
         for show in shows:
 
+            broadcast = "Yes" if show.live_show else "No"
             embed.add_field(
                 name=show.name,
-                value=f"Card: {show.card}\nCity: {show.city}\nVenue: {show.venue}\n" + zone_times_str(show.time),
+                value=f"Card: {show.card}\nCity: {show.city}\nVenue: {show.venue}\n" + zone_times_str(show.time) + f"\nBroadcast: {broadcast}",
                 inline=False
             )
     
