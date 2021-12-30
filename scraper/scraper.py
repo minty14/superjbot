@@ -174,23 +174,29 @@ class Scraper():
                     # Pull the date and time from the first 2 columns
                     show_details = [s.text for s in (broadcast.find_all('td'))][:2]
                     # Create a datetime object for the show by building a string and formatting it (Japanese time)
-                    time = pytz.timezone("Asia/Tokyo").localize(datetime.strptime(show_details[1][:5] + " " + show_details[0].split("(")[0] + " " + year, "%H:%M %m/%d %Y"))
-                    # Find a show with a matching datetime
-                    # If live_show is already True, we don't need to update it, so filter those out
-                    show = ScheduleShow.objects(time=time, live_show=False).first()
 
-                    # If there's a match, update the DB
-                    if show:
-                        show.update(live_show=True)
-                        logging.info(f"New broadcast found: {show.name} ({show.date})")
-                
+                    # If 後日配信 is in the show details, the time has not yet been confirmed
+                    if "後日配信" in show_details:
+                        logging.info(f"No time set for {show_details}, skipping...")
+                    
+                    else: 
+                        time = pytz.timezone("Asia/Tokyo").localize(datetime.strptime(show_details[1][:5] + " " + show_details[0].split("(")[0] + " " + year, "%H:%M %m/%d %Y"))
+                        # Find a show with a matching datetime
+                        # If live_show is already True, we don't need to update it, so filter those out
+                        show = ScheduleShow.objects(time=time, live_show=False).first()
+
+                        # If there's a match, update the DB
+                        if show:
+                            show.update(live_show=True)
+                            logging.info(f"New broadcast found: {show.name} ({show.date})")
+                    
                 except Exception as e:
                     logging.error("Error trying to update broadcast shows: " + str(e))
         
         try:
             # Custom headers are needed otherwise njpwworld gives an unsupported browser error
             headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36'}
-            session = requests.get("https://njpwworld.com/feature/schedule", headers=headers)
+            session = requests.get("https://njpwworld.com/feature/schedule#googtrans(en)", headers=headers)
             soup = BeautifulSoup(session.text, "html.parser")
 
             # Tab1 contains the schedule, tab2 is past events

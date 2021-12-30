@@ -80,12 +80,6 @@ class Listeners(commands.Cog):
 
             # Calculate time since last breach
             days_between_breaches = (datetime.now() - alarm_obj.last_mention_time).days
-            
-            # Show an image in the channel where the breach happened, only if the current time is > 1 day to prevent spamming
-            if days_between_breaches > 0:
-                await message.channel.send(
-                    content="http://static.puroview.com/super-j-bot/dayssince.jpg"
-                )
 
             # Update the record days if the ending timespan is the longest ever
             if days_between_breaches > alarm_obj.record_days:
