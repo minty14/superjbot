@@ -115,7 +115,7 @@ class Tasks(commands.Cog):
                 for p in removed_profiles:
                     logging.info(f"Removed profile found: {p.name}")
                     await self.bot.general_channel.send(embed=utils.embeds.profile_embed(p))
-                removed_profiles.delete()
+                    p.delete()
 
         except Exception as e:
             logging.error("Error encountered while running removed_profile_watcher: " + str(e))

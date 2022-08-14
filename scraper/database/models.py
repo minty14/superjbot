@@ -57,6 +57,7 @@ class ScheduleShow(Document):
     updated_at = DateTimeField()
     added_at = DateTimeField(default=datetime.datetime.now)
     live_show = BooleanField(default=False)
+    source_tz = StringField()
 
     meta = {
         "indexes": ["name", "time"],
@@ -85,6 +86,7 @@ class ResultShow(Document):
     card = URLField()
     updated_at = DateTimeField()
     added_at = DateTimeField(default=datetime.datetime.now)
+    source_tz = StringField()
 
     meta = {
         "indexes": ["name"],

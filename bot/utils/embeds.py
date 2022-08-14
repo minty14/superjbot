@@ -229,10 +229,17 @@ def profile_embed(profile):
 # Bio info is pulled from njpw1972.com/profile
 def bio_embed(profile):
 
-    if profile["attributes"]["unit"] in colours:
-        colour = colours[profile["attributes"]["unit"]]
-    else:
+    try:
+        if "unit" in profile["attributes"] and profile["attributes"]["unit"] in colours:
+            colour = colours[profile["attributes"]["unit"]]
+
+        else:
+            colour = 8359053
+    
+    except KeyError:
+        
         colour = 8359053
+    
 
     embed = Embed(
         title=profile["name"],

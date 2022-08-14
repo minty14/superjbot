@@ -8,6 +8,7 @@ from datetime import datetime
 import logging
 import requests
 import pytz
+import re
 
 from database.models import ScheduleShow
 
@@ -114,8 +115,10 @@ class Scraper():
         shows = []
         
         for x in range(1, 3):
-            soup = self.create_soup("https://www.njpw1972.com/" + type + "?pageNum=" + str(x), "lxml")
+            url = "https://www.njpw1972.com/" + type + "?pageNum=" + str(x)
+            soup = self.create_soup(url, "lxml")
             all_events = soup.find_all("div", class_="event")
+            logging.info(f"Scraping {url} for shows.")
 
             for event in all_events:
                     # Each "event" can actually be one show, or a whole tour, with multiple dates
@@ -133,32 +136,177 @@ class Scraper():
                                 "card": date.find("a")["href"]
                             }
 
+                            logging.info(f"Found show {show_dict['name']}")
+
                             # The url of their placeholder logo needs to be replaced with the full path
                             if show_dict['thumb'] == "/wp-content/themes/njpw-en/images/common/noimage_poster.jpg":
                                 show_dict['thumb'] = "https://www.njpw1972.com/wp-content/themes/njpw-en/images/common/noimage_poster.jpg"
 
-                            #Scrape the scheduled time of the show and split our the date and time
+                            # Scrape the scheduled time of the show and split our the date and time
                             date_time = " ".join(date.find("p", class_="date").get_text().strip().split())
-                            date = " ".join(date_time.split(" ")[:4])
-                            time = date_time.split("BELL")[1].strip()
 
-                            # The 'date' dict values here are a duplicate of 'time'. It is added to the DB as a DateField
-                            # 'date' is then used to update show DB entries without duplicating when the show time has changed
-                            if "EST" in time:
-                                # If the timezone is EST (eg Strong), set the correct timezone and localise the time to UTC
-                                tz = pytz.timezone("US/Eastern")
-                                time = time[:7] # Removes the timezone from the time text contents
-                                show_dict['time'] = tz.localize(datetime.strptime(date + " " + time, "%a. %B. %d. %Y %I:%M%p"))
-                                show_dict['date'] = show_dict['time']
-                            else:
-                                # Default timezone is JST so start times are localised to UTC based on that
+                            show_date = " ".join(date_time.split(" ")[:4])
+                            show_time = " ".join(date_time.split(" ")[5:])
+
+                            logging.info(f"Found time for {show_dict['name']}: {date_time}")
+                            
+                            # Check for the format of date time
+                            # Match datetimes like: SUN. MAY. 15. 2022 | DOOR 15:30 | BELL 17:00 (Standard JPN shows)
+                            if re.match(r"^\w{3}\. \w{3,9}\. \d{1,2}\. \d{4} \| DOOR \d\d:\d\d \| BELL \d\d:\d\d$", date_time, re.IGNORECASE):
+                                logging.info(f"Date time for {show_dict['name']} matches format 'DAY. MONTH. 00. YEAR | DOOR 00:00 | BELL 00:00'")
+                                
+                                # Parse date and time from text
+                                # Time is text after "bell"
+                                show_time = date_time.split("BELL")[1].strip()
+                                
+                                # Convert the text into a datetime object
+                                fmt_datetime = datetime.strptime(show_date + " " + show_time, "%a. %B. %d. %Y %H:%M")
+                                logging.info(f"Formatted datetime for {show_dict['name']}: {fmt_datetime}")
+                                
+                                # Timezone for shows in this format is JST so start times are localised to UTC based on that
                                 tz = pytz.timezone("Asia/Tokyo")
-                                show_dict['time'] = tz.localize(datetime.strptime(date + " " + time, "%a. %B. %d. %Y %H:%M"))
+                                
+                                # Add full datetime to dict. These are duplicated here and "date" is then added to DB as date only for generic day matching 
+                                show_dict['time'] = tz.localize(fmt_datetime)
                                 show_dict['date'] = show_dict['time']
+                                show_dict['source_tz'] = "utc"
+
+                            # Match datetimes like: SAT. MAY. 7. 2022
+                            elif re.match(r"^\w{3}\. \w{3,9}\. [0-9]{1,2}\. [0-9]{4}$", date_time, re.IGNORECASE):
+                                logging.info(f"Date time for {show_dict['name']} matches RE format 'DAY. MONTH. 00. YEAR'")
+                                
+                                # This format provides date only, so it is parsed directly.
+                                fmt_datetime = datetime.strptime(show_date, "%a. %B. %d. %Y")
+                                logging.info(f"Formatted datetime for {show_dict['name']}: {fmt_datetime}")
+                                
+                                # No time available, so don't add it to the dict
+                                show_dict['date'] = fmt_datetime
+                                show_dict['source_tz'] = "none"
+
+                                show_dict['time'] = show_dict['date']
+
+                            # Match datetimes like: SAT. MAY. 14. 2022 | DOOR 6PM | BELL 7PM
+                            elif re.match(r"^\w{3}\. \w{3,9}\. \d{1,2}\. \d{4} \| DOOR \d[A|P]M \| BELL \d[A|P]M$", date_time, re.IGNORECASE):
+                                logging.info(f"Date time for {show_dict['name']} matches format 'DAY. MONTH. 00. YEAR | DOOR 0PM | BELL 0PM'")
+                                
+                                # Time is text after "bell"
+                                show_time = date_time.split("BELL")[1].strip()
+
+                                if len(show_time) == 3:
+                                    show_time = "0" + show_time
+
+                                # Convert the text into a datetime object
+                                fmt_datetime = datetime.strptime(show_date + " " + show_time, "%a. %B. %d. %Y %I%p")
+                                logging.info(f"Formatted datetime for {show_dict['name']}: {fmt_datetime}")
+                                
+                                # Times in this format usually indicates USA shows, but no TZ is indicated, so it is not localised
+                                show_dict['time'] = fmt_datetime
+                                show_dict['date'] = show_dict['time']
+                                show_dict['source_tz'] = "local"
+
+                            # Match datetimes like: SUN. MAY. 15. 2022 | DOOR 4PM ET | BELL 5 PM ET or TUE. AUGUST. 16. 2022 | BELL 6PM JST
+                            elif (re.match(r"^\w{3}\. \w{3,9}\. \d{1,2}\. \d{4} \| DOOR \d[A|P]M \w{2,4} \| BELL \d[A|P]M \w{2,4}$", date_time, re.IGNORECASE) or
+                                  re.match(r"^\w{3}\. \w{3,9}\. \d{1,2}\. \d{4} \| DOOR \d[A|P]M \w{2,4} \| BELL \d [A|P]M \w{2,4}$", date_time, re.IGNORECASE) or
+                                  re.match(r"^\w{3}\. \w{3,9}\. \d{1,2}\. \d{4} \| BELL \d[A|P]M \w{2,4}$", date_time, re.IGNORECASE)):
+                                
+                                logging.info(f"Date time for {show_dict['name']} matches format 'DAY. MONTH. 00. YEAR (| DOOR 0PM TZ) | BELL 0PM TZ'")
+                                
+                                # Parse date and time from text
+                                # Date is the text up to the 4th space
+                                show_date = " ".join(date_time.split(" ")[:4])
+                                
+                                # Time is text after "bell" - convert it to eg 7PM
+                                show_time = date_time.split("BELL")[1].replace(" ", "")[:3]
+                                
+                                # Convert the text into a datetime object
+                                fmt_datetime = datetime.strptime(show_date + " " + show_time, "%a. %B. %d. %Y %I%p")
+                                logging.info(f"Formatted datetime for {show_dict['name']}: {fmt_datetime}")
+                                
+                                # Timezone is at the end of the string
+                                show_tz = date_time.rsplit(" ", 1)[-1]
+                                logging.info(f"Timezone found for {show_dict['name']}: {show_tz}")
+                                
+                                # Match timezones from text into pytz format
+                                if show_tz == "JST":
+                                    tz = pytz.timezone("Asia/Tokyo")
+                                    show_dict['time'] = tz.localize(fmt_datetime)
+                                    show_dict['source_tz'] = "utc"
+
+                                elif show_tz == "ET":
+                                    tz = pytz.timezone("US/Eastern")
+                                    show_dict['time'] = tz.localize(fmt_datetime)
+                                    show_dict['source_tz'] = "utc"
+                                # If TZ is unrecognised, stick to local time
+                                else:
+                                    show_dict['time'] = fmt_datetime
+
+                                show_dict['date'] = show_dict['time']
+
+                            # Match datetimes like: WED. AUGUST. 10. 2022 | BELL 6:30PM JST
+                            elif re.match(r"^\w{3}\. \w{3,9}\. \d{1,2}\. \d{4} \| BELL \d:\d\d[A|P]M \w{2,4}$", date_time, re.IGNORECASE):
+                                logging.info(f"Date time for {show_dict['name']} matches format 'DAY. MONTH. 00. YEAR | BELL 0:00PM TZ'")
+                                
+                                # Parse date and time from text
+                                # Date is the text up to the 4th space
+                                show_date = " ".join(date_time.split(" ")[:4])
+
+                                # Time is text after "bell" up to the last space
+                                show_time = date_time.split("BELL")[1].rsplit(" ", 1)[0].replace(" ", "")
+
+                                if len(show_time) == 6:
+                                    show_time = "0" + show_time
+
+                                # Timezone is at the end of the string
+                                show_tz = date_time.rsplit(" ", 1)[-1]
+                                logging.info(f"Timezone found for {show_dict['name']}: {show_tz}")
+
+                                # Convert the text into a datetime object
+                                fmt_datetime = datetime.strptime(show_date + " " + show_time, "%a. %B. %d. %Y %I:%M%p")
+                                logging.info(f"Formatted datetime for {show_dict['name']}: {fmt_datetime}")
+
+                                # Match timezones from text into pytz format
+                                if show_tz == "JST":
+                                    tz = pytz.timezone("Asia/Tokyo")
+                                    show_dict['time'] = tz.localize(fmt_datetime)
+                                    show_dict['source_tz'] = "utc"
+
+                                elif show_tz == "ET":
+                                    tz = pytz.timezone("US/Eastern")
+                                    show_dict['time'] = tz.localize(fmt_datetime)
+                                    show_dict['source_tz'] = "utc"
+                                # If TZ is unrecognised, stick to local time
+                                else:
+                                    show_dict['time'] = fmt_datetime
+
+                                show_dict['date'] = show_dict['time']
+
+                            # Match datetimes like: SAT. AUGUST. 13. 2022 | BELL 8/7c
+                            elif re.match(r"^\w{3}\. \w{3,9}\. \d{1,2}\. \d{4} \| \w{4} \d/\dc$", date_time, re.IGNORECASE):
+                                # Parse date and time from text
+                                # Date is the text up to the 4th space
+                                show_date = " ".join(date_time.split(" ")[:4])
+
+                                # Time is text after "/", central time - 
+                                show_time = "0" + date_time.split("/")[1][0] + "PM"
+
+                                # Convert the text into a datetime object
+                                fmt_datetime = datetime.strptime(show_date + " " + show_time, "%a. %B. %d. %Y %I%p")
+                                logging.info(f"Formatted datetime for {show_dict['name']}: {fmt_datetime}")
+
+                                # Shows in this format are always central time as far as I can tell
+                                tz = pytz.timezone("US/Central")
+                                show_dict['time'] = tz.localize(fmt_datetime)
+                                show_dict['source_tz'] = "local"
+
+                                show_dict['date'] = show_dict['time']
+
+                            else:
+                                logging.warn(f"Cannot match format of {show_dict['name']}")
                             
                             logging.debug("show_dict: " + str(show_dict))
 
                             shows.append(show_dict)
+                            logging.info(f"Finished with {show_dict['name']}, moving to next show.")
                         
                         except Exception as e:
                             logging.error(f"Unable to scrape show {event_name}: " + str(e))

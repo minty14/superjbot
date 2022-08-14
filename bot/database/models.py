@@ -58,21 +58,10 @@ class ScheduleShow(Document):
     updated_at = DateTimeField()
     added_at = DateTimeField(default=datetime.datetime.now)
     live_show = BooleanField(default=False)
+    source_tz = StringField()
 
     meta = {
         "indexes": ["name", "date"],
-        "ordering": ["time"]
-    }
-
-class NonNjpwShow(Document):
-    name = StringField(required=True, unique_with="date")
-    time = DateTimeField(required=True)
-    date = DateField(unique_with="name")
-    spoiler_hours = IntField(default=14)
-    added_at = DateTimeField(default=datetime.datetime.now)
-
-    meta = {
-        "indexes": ["name", "time"],
         "ordering": ["time"]
     }
 
@@ -86,10 +75,22 @@ class ResultShow(Document):
     card = URLField()
     updated_at = DateTimeField()
     added_at = DateTimeField(default=datetime.datetime.now)
+    source_tz = StringField()
 
     meta = {
         "indexes": ["name"],
         "ordering": ["-time"]
+    }
+class NonNjpwShow(Document):
+    name = StringField(required=True, unique_with="date")
+    time = DateTimeField(required=True)
+    date = DateField(unique_with="name")
+    spoiler_hours = IntField(default=14)
+    added_at = DateTimeField(default=datetime.datetime.now)
+
+    meta = {
+        "indexes": ["name", "time"],
+        "ordering": ["time"]
     }
 
 class Profile(DynamicDocument):
