@@ -102,8 +102,12 @@ async def update_shows():
         # Scrape the shows listed on njpw1972.com/schedule
         schedule_shows = scraper.shows("schedule")
 
+        logging.debug(f"schedule_shows: {schedule_shows}")
+
         for s in schedule_shows:
             try:
+                logging.debug(f"schedule_show: {s}")
+                
                 # For each show in the scraped date, check if it already exists in the DB
                 if ScheduleShow.objects(name=s['name'], date=s['date']):
 

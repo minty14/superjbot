@@ -186,7 +186,7 @@ class Scraper():
                                 show_dict['time'] = show_dict['date']
 
                             # Match datetimes like: SAT. MAY. 14. 2022 | DOOR 6PM | BELL 7PM
-                            elif re.match(r"^\w{3}\. \w{3,9}\. \d{1,2}\. \d{4} \| DOOR \d[A|P]M \| BELL \d[A|P]M$", date_time, re.IGNORECASE):
+                            elif re.match(r"^\w{3}\. \w{3,9}\. \d{1,2}\. \d{4} \| DOOR \d(\:\d\d)?[A|P]M( \(.+?\))? \| BELL \d(\:\d\d)?[A|P]M( \(.+?\))?$", date_time, re.IGNORECASE):
                                 logging.info(f"Date time for {show_dict['name']} matches format 'DAY. MONTH. 00. YEAR | DOOR 0PM | BELL 0PM'")
                                 
                                 # Time is text after "bell"
@@ -196,7 +196,10 @@ class Scraper():
                                     show_time = "0" + show_time
 
                                 # Convert the text into a datetime object
-                                fmt_datetime = datetime.strptime(show_date + " " + show_time, "%a. %B. %d. %Y %I%p")
+                                if ":" in show_time:
+                                    fmt_datetime = datetime.strptime(show_date + " " + show_time, "%a. %B. %d. %Y %I:%M%p")
+                                else:
+                                    fmt_datetime = datetime.strptime(show_date + " " + show_time, "%a. %B. %d. %Y %I%p")
                                 logging.info(f"Formatted datetime for {show_dict['name']}: {fmt_datetime}")
                                 
                                 # Times in this format usually indicates USA shows, but no TZ is indicated, so it is not localised
